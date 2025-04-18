@@ -1,2 +1,3 @@
 macOs
 clang project.c -o project -I/opt/homebrew/include -L/opt/homebrew/lib -framework OpenGL -framework GLUT
+./project
