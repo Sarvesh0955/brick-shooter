@@ -16,6 +16,134 @@ int count = 0;
 void live_score();
 void gamestatus();
 
+void keyb(unsigned char key, int x, int y)
+{
+
+    if (key == 'f' || key == 'F')
+    {
+
+        flag2 = 1;
+        flag = 1;
+
+        glutIdleFunc(idel);
+    }
+    if (key == 'n' || key == 'N')
+    {
+
+        flag1 = 1;
+        flag = 1;
+
+        glutIdleFunc(idel);
+    }
+    if (key == 'd' || key == 'D')
+    {
+        if (br5 < 600)
+        {
+
+            br1 = br1 + 50;
+            br2 = br2 + 50;
+            br3 = br3 + 50;
+            br4 = br4 + 50;
+            br5 = br5 + 50;
+        }
+    }
+    if (key == 'a' || key == 'A')
+    {
+        if (br1 > 0)
+        {
+            br1 = br1 - 50;
+            br2 = br2 - 50;
+            br3 = br3 - 50;
+            br4 = br4 - 50;
+            br5 = br5 - 50;
+        }
+    }
+    if (key == 'q')
+        exit(0);
+}
+void bricks()
+{
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POLYGON);
+    glVertex2f(b1x1, b1y1);
+    glVertex2f(b1x1, b1y2);
+    glVertex2f(b1x2, b1y2);
+    glVertex2f(b1x2, b1y1);
+    glVertex2f(b1x3, b1y1);
+    glEnd();
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_POLYGON);
+    glVertex2f(b2x1, b2y1);
+    glVertex2f(b2x1, b2y2);
+    glVertex2f(b2x2, b2y2);
+    glVertex2f(b2x2, b2y1);
+    glVertex2f(b2x3, b2y1);
+    glEnd();
+    glColor3f(0.0, 0.0, 1.0);
+    glBegin(GL_POLYGON);
+    glVertex2f(b3x1, b3y1);
+    glVertex2f(b3x1, b3y2);
+    glVertex2f(b3x2, b3y2);
+    glVertex2f(b3x2, b3y1);
+    glVertex2f(b3x3, b3y1);
+    glEnd();
+    glColor3f(1.0, 1.0, 0.0);
+    glBegin(GL_POLYGON);
+    glVertex2f(b4x1, b4y1);
+    glVertex2f(b4x1, b4y2);
+    glVertex2f(b4x2, b4y2);
+    glVertex2f(b4x2, b4y1);
+    glVertex2f(b4x3, b4y1);
+    glEnd();
+    if (b1y1 > 0)
+    {
+        b1y1 = b1y1 - 0.04;
+        b1y2 = b1y2 - 0.04;
+    }
+    else
+    {
+        b1y1 == -600;
+
+        gamestatus();
+    }
+
+    if (b2y1 > 0)
+    {
+        b2y1 = b2y1 - 0.02;
+        b2y2 = b2y2 - 0.02;
+    }
+    else
+    {
+        b2y1 == -600;
+
+        gamestatus();
+    }
+    if (b3y1 > 0)
+    {
+        b3y1 = b3y1 - 0.02;
+        b3y2 = b3y2 - 0.02;
+    }
+    else
+    {
+        b3y1 == -600;
+
+        gamestatus();
+    }
+    if (b4y1 > 0)
+    {
+        b4y1 = b4y1 - 0.04;
+        b4y2 = b4y2 - 0.04;
+    }
+    else
+    {
+        b4y1 == -600;
+
+        gamestatus();
+    }
+
+    glutPostRedisplay();
+}
+
 void display()
 {
     glClear(GL_COLOR_BUFFER_BIT);
