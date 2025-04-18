@@ -38,7 +38,7 @@ void screen()
     drawstring(150,250,"GUIDE:");
     drawstring(150,200,"Guide Name");
     drawstring(150,60,"Academic Year");
-    drawstring(250,20,"press 'f' to continue");
+    drawstring(250,20,"press 'f' or space to continue");
 glFlush();
 }
 void nextscreen()
@@ -47,7 +47,7 @@ void nextscreen()
     drawstring(250,550,"INSTRUCTIONS");
     drawstring(100,450,"press A to move left side");
     drawstring(100,400,"press D to move left side");
-    drawstring(100,350,"press F to fire bullet");
+    drawstring(100,350,"press F or SPACE to fire bullet");
     drawstring(100,300,"press Q to exit");
     drawstring(150,20,"press 'n' to continue");
 glFlush();
@@ -182,7 +182,7 @@ void keyb(unsigned char key,int x,int y)
     
     
     
-    if(key=='f'||key=='F')
+    if(key=='f'||key=='F' || key==' ') 
     {  
     
             
