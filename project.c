@@ -6,7 +6,10 @@
 
 GLfloat br1=0,br2=0,br3=25,br4=50,br5=50;
 GLfloat bul=25;
+GLfloat bulX=25; // New variable to store bullet's x-position
 GLint flag=0,flag2=0,flag1=0;
+GLint bulletActive = 0; // Track if bullet is currently active
+// Removing autoShootTimer as we don't need auto shooting
 GLfloat b1x1=0,b1x2=50,b1x3=25,b1y1=575,b1y2=600;
 GLfloat b2x1=500,b2x2=550,b2x3=525,b2y1=575,b2y2=600;
 GLfloat b3x1=300,b3x2=350,b3x3=325,b3y1=575,b3y2=600;
@@ -72,39 +75,47 @@ void live_score ()
 
 
 void idel()
-{	if(flag==1)
+{	
+    // Auto-shooting logic has been removed, keeping only the bullet movement
+    if(flag==1)
     {
-    if(bul<600)
-    bul=bul+1.000;
-    if(bul>=600)
-    bul=25;
-    
+        if(bul<600)
+            bul=bul+5.000; // Keeping the faster bullet speed
+        if(bul>=600) {
+            bul=25;
+            flag=0; // Reset bullet state
+            bulletActive = 0;
+        }
     }
+    
     glutPostRedisplay();
-    if(br3==b1x3&&bul>b1y1&&bul<b1y2)
+    
+    // Rest of collision detection code remains the same
+    if(bulX==b1x3&&bul>b1y1&&bul<b1y2)
     {   
         if(b1x2<600)
         {
-        b1y1=675;
-        b1x1=b1x1+50;
-        b1x2=b1x2+50;
-        b1x3=b1x3+50;
-        b1y2=700;
-        count++;
+            b1y1=675;
+            b1x1=b1x1+50;
+            b1x2=b1x2+50;
+            b1x3=b1x3+50;
+            b1y2=700;
+            count++;
         }
         else
         {
-        b1x1=0;
-        b1x2=50;
-        b1x3=25;
-        b1y1=575;
-        b1y2=600;	
+            b1x1=0;
+            b1x2=50;
+            b1x3=25;
+            b1y1=575;
+            b1y2=600;	
         }
         flag=0;
+        bulletActive = 0;
         bul=25;
         live_score();
     }
-    if(br3==b2x3&&bul>b2y1&&bul<b2y2)
+    if(bulX==b2x3&&bul>b2y1&&bul<b2y2)
     {	
         if(b2x2>0)
         {
@@ -122,13 +133,13 @@ void idel()
         b2x3=525;
         b2y1=575;
         b2y2=600;
-        flag=0;
         }
         flag=0;
+        bulletActive = 0;
         bul=25;
         live_score();
     }
-    if(br3==b3x3&&bul>b3y1&&bul<b3y2)
+    if(bulX==b3x3&&bul>b3y1&&bul<b3y2)
     {	
         if(b3x2>0)
         {
@@ -146,14 +157,13 @@ void idel()
             b3x3=325;
             b3y1=575;
             b3y2=600;
-            
-            
         }	
         flag=0;
+        bulletActive = 0;
         bul=25;
         live_score();
     }
-    if(br3==b4x3&&bul>b4y1&&bul<b4y2)
+    if(bulX==b4x3&&bul>b4y1&&bul<b4y2)
     {
         if(b4x2<600)
         {
@@ -174,56 +184,54 @@ void idel()
         }
         bul=25;
         flag=0;
+        bulletActive = 0;
         live_score();
     }
 }
 void keyb(unsigned char key,int x,int y)
 {	
-    
-    
-    
     if(key=='f'||key=='F' || key==' ') 
     {  
-    
-            
-    flag2=1;
-     flag=1; 
-    
-    
-    glutIdleFunc(idel);
+        flag2=1;
+        flag=1; 
+        bulX = br3; // Set bullet x-position to current ship position when fired
+        bulletActive = 1;
+        glutIdleFunc(idel);
     }
+    
     if(key=='n'||key=='N')
     {  
-    
-     flag1=1;
-      flag=1; 
-    
-    
-    glutIdleFunc(idel);
+        flag1=1;
+        flag=1; 
+        glutIdleFunc(idel);
     }
+    
     if(key=='d'||key=='D')
-    {	if(br5<600)
+    {	
+        if(br5<600)
         {
+            br1=br1+50;
+            br2=br2+50;
+            br3=br3+50;
+            br4=br4+50;
+            br5=br5+50;
+        }
+    }
     
-        br1=br1+50;
-        br2=br2+50;
-        br3=br3+50;
-        br4=br4+50;
-        br5=br5+50;
-        }
-    }
     if(key=='a'||key=='A')
-    {	if(br1>0)
+    {	
+        if(br1>0)
         {
-        br1=br1-50;
-        br2=br2-50;
-        br3=br3-50;
-        br4=br4-50;
-        br5=br5-50;
+            br1=br1-50;
+            br2=br2-50;
+            br3=br3-50;
+            br4=br4-50;
+            br5=br5-50;
         }
     }
+    
     if(key=='q')
-    exit(0);
+        exit(0);
 }
 void bricks()
 {
@@ -339,11 +347,14 @@ void display()
        glVertex2f(br5,0);
     glEnd();
     
-    glColor3f(0.0,0.0,0.0);
-    glPointSize(7);
-    glBegin(GL_POINTS);
-        glVertex2f(br3,bul);
-    glEnd();
+    // Only draw the bullet if it's active
+    if (flag == 1) {
+        glColor3f(0.0,0.0,0.0);
+        glPointSize(7);
+        glBegin(GL_POINTS);
+            glVertex2f(bulX,bul);
+        glEnd();
+    }
     
     bricks();
     live_score();
