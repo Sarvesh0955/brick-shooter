@@ -62,6 +62,7 @@ int respawnDelay = 100;      // Frames to wait before respawning
 int minRequiredBricks = 2;   // Minimum number of bricks that must be active
 int lowBrickTimer = 0;       // Timer to track how long we've been below min brick count
 int lowBrickThreshold = 200; // How long we can stay below min brick count before game over
+int gameOver = 0;            // Flag to track if the game is over
 
 int count=0;
 void live_score ();
@@ -498,6 +499,12 @@ void draw_aliens() {
     // Update difficulty based on score
     update_difficulty();
     
+    // Check if game is already over
+    if (gameOver) {
+        gamestatus();
+        return;
+    }
+    
     // Count how many bricks are currently active
     int activeBrickCount = count_active_bricks();
     
@@ -509,6 +516,7 @@ void draw_aliens() {
             lowBrickTimer = 0; 
         }
         if (lowBrickTimer > lowBrickThreshold) {
+            gameOver = 1;
             gamestatus();
             return;
         }
@@ -562,8 +570,10 @@ void draw_aliens() {
             b1y1 = b1y1 - currentSpeed;
             b1y2 = b1y2 - currentSpeed;
         } else {
-            brickActiveStatus[0] = 0;
-            respawnTimer = 0;
+            // Alien reached bottom - GAME OVER!
+            gameOver = 1;
+            gamestatus();
+            return;
         }
     } else {
         if (respawnTimer >= respawnDelay) {
@@ -620,7 +630,10 @@ void draw_aliens() {
             b2y1 = b2y1 - currentSpeed;
             b2y2 = b2y2 - currentSpeed;
         } else {
-            brickActiveStatus[1] = 0;
+            // Alien reached bottom - GAME OVER!
+            gameOver = 1;
+            gamestatus();
+            return;
         }
     } else {
         if (respawnTimer >= respawnDelay/2) {
@@ -687,7 +700,10 @@ void draw_aliens() {
             b3y1 = b3y1 - currentSpeed;
             b3y2 = b3y2 - currentSpeed;
         } else {
-            brickActiveStatus[2] = 0;
+            // Alien reached bottom - GAME OVER!
+            gameOver = 1;
+            gamestatus();
+            return;
         }
     } else {
         if (respawnTimer >= respawnDelay/2 + 30) {
@@ -776,7 +792,10 @@ void draw_aliens() {
             b4y1 = b4y1 - currentSpeed;
             b4y2 = b4y2 - currentSpeed;
         } else {
-            brickActiveStatus[3] = 0;
+            // Alien reached bottom - GAME OVER!
+            gameOver = 1;
+            gamestatus();
+            return;
         }
     } else {
         if (respawnTimer >= respawnDelay/2 + 60) {
