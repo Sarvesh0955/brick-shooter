@@ -3,74 +3,65 @@
 #include<math.h>
 #include<stdlib.h>
 #include<string.h>
-#include<time.h> // Adding time.h header for the time() function
+#include<time.h>
 
-// Define a structure for bullets
 typedef struct {
-    GLfloat x;       // X-position
-    GLfloat y;       // Y-position
-    int active;      // Is bullet active? (1=yes, 0=no)
+    GLfloat x;
+    GLfloat y;
+    int active;
 } Bullet;
 
-// Define a structure for stars in the background
 typedef struct {
-    GLfloat x;       // X-position
-    GLfloat y;       // Y-position
-    GLfloat size;    // Star size
-    GLfloat brightness; // Star brightness (for twinkling effect)
-    GLfloat twinkleSpeed; // How fast the star twinkles
+    GLfloat x;
+    GLfloat y;
+    GLfloat size;
+    GLfloat brightness;
+    GLfloat twinkleSpeed;
 } Star;
 
-#define MAX_BULLETS 10    // Maximum number of bullets allowed on screen
-#define MAX_STARS 100     // Number of stars in the background
-Bullet bullets[MAX_BULLETS]; // Array to store bullets
-Star stars[MAX_STARS];    // Array to store background stars
-int activeBulletCount = 0;    // Track how many bullets are currently active
+#define MAX_BULLETS 10
+#define MAX_STARS 100
+Bullet bullets[MAX_BULLETS];
+Star stars[MAX_STARS];
+int activeBulletCount = 0;
 
-// Space theme colors
-GLfloat spaceBlue[] = {0.0, 0.05, 0.2}; // Dark blue space background
-GLfloat spaceshipColor[] = {0.8, 0.8, 0.9}; // Silvery spaceship
-GLfloat laserColor[] = {1.0, 0.4, 0.2}; // Orange-red laser beams
+GLfloat spaceBlue[] = {0.0, 0.05, 0.2};
+GLfloat spaceshipColor[] = {0.8, 0.8, 0.9};
+GLfloat laserColor[] = {1.0, 0.4, 0.2};
 GLfloat alienColors[4][3] = {
-    {0.2, 0.8, 0.2}, // Green alien
-    {0.8, 0.2, 0.8}, // Purple alien  
-    {0.0, 0.7, 0.8}, // Cyan alien
-    {0.9, 0.6, 0.1}  // Orange-gold alien
+    {0.2, 0.8, 0.2},
+    {0.8, 0.2, 0.8},
+    {0.0, 0.7, 0.8},
+    {0.9, 0.6, 0.1}
 };
-// Trail effect for spaceship
 GLfloat engineGlowTimer = 0;
 
 GLfloat br1=0,br2=0,br3=25,br4=50,br5=50;
-// Removing single bullet variables as we're now using an array of bullets
 GLint flag=0,flag2=0,flag1=0;
-// Removing bulletActive as we now track each bullet's state individually
-// Removing autoShootTimer as we don't need auto shooting
 GLfloat b1x1=0,b1x2=50,b1x3=25,b1y1=575,b1y2=600;
 GLfloat b2x1=500,b2x2=550,b2x3=525,b2y1=575,b2y2=600;
 GLfloat b3x1=300,b3x2=350,b3x3=325,b3y1=575,b3y2=600;
 GLfloat b4x1=200,b4x2=250,b4x3=225,b4y1=575,b4y2=600;
 
-// Difficulty scaling variables
-GLfloat baseSpeed = 0.12;    // Increased from 0.04 to 0.12 for faster initial speed
-GLfloat speedFactor = 1.0;   // Speed multiplier that increases with score
-int lastSpeedIncrease = 0;   // Tracks when speed was last increased
-int speedIncreaseInterval = 5; // Increase speed every 5 points
-int maxActiveBricks = 4;     // Initial number of active bricks
-int brickActiveStatus[4] = {1, 1, 1, 1}; // Track which bricks are active (1=active, 0=inactive)
-int respawnTimer = 0;        // Timer for respawning bricks
-int respawnDelay = 100;      // Frames to wait before respawning
-int minRequiredBricks = 2;   // Minimum number of bricks that must be active
-int lowBrickTimer = 0;       // Timer to track how long we've been below min brick count
-int lowBrickThreshold = 200; // How long we can stay below min brick count before game over
-int gameOver = 0;            // Flag to track if the game is over
+GLfloat baseSpeed = 0.12;
+GLfloat speedFactor = 1.0;
+int lastSpeedIncrease = 0;
+int speedIncreaseInterval = 5;
+int maxActiveBricks = 4;
+int brickActiveStatus[4] = {1, 1, 1, 1};
+int respawnTimer = 0;
+int respawnDelay = 100;
+int minRequiredBricks = 2;
+int lowBrickTimer = 0;
+int lowBrickThreshold = 200;
+int gameOver = 0;
 
 int count=0;
 void live_score ();
 void gamestatus();
 
-// Function to randomize brick position
 void randomize_brick_position(int brick_num) {
-    int x_pos = (rand() % 11) * 50; // Random X position (0-550 in steps of 50)
+    int x_pos = (rand() % 11) * 50;
     
     switch(brick_num) {
         case 1:
@@ -108,24 +99,20 @@ void randomize_brick_position(int brick_num) {
     }
 }
 
-// Function to update game difficulty based on score
 void update_difficulty() {
-    // Increase speed factor every few points
     if (count > lastSpeedIncrease + speedIncreaseInterval) {
-        speedFactor += 0.2; // 20% speed increase
+        speedFactor += 0.2;
         lastSpeedIncrease = count;
         
-        // If score is high enough, decrease respawn delay
         if (count > 20) {
-            respawnDelay = 80;  // Faster respawn after score of 20
+            respawnDelay = 80;
         }
         if (count > 40) {
-            respawnDelay = 60;  // Even faster respawn after score of 40
+            respawnDelay = 60;
         }
     }
 }
 
-// Function to count active bricks and ensure minimum brick count
 int count_active_bricks() {
     int active_count = 0;
     for (int i = 0; i < 4; i++) {
@@ -136,19 +123,14 @@ int count_active_bricks() {
     return active_count;
 }
 
-// Function to spawn a new brick if needed
 void ensure_minimum_bricks() {
     int active_bricks = count_active_bricks();
     
-    // If less than 3 bricks are active, try to spawn new ones
     if (active_bricks < 3) {
-        // First check which bricks are inactive
         for (int i = 0; i < 4; i++) {
             if (!brickActiveStatus[i]) {
-                // Immediately spawn a new brick at this position
                 randomize_brick_position(i + 1);
                 
-                // If we now have at least 2-3 bricks, we can stop
                 if (count_active_bricks() >= 3) {
                     break;
                 }
@@ -214,11 +196,10 @@ void live_score ()
 
 void idel()
 {	
-    // Move all active bullets upward
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
             if (bullets[i].y < 600)
-                bullets[i].y += 5.000; // Laser beam speed
+                bullets[i].y += 5.000;
             if (bullets[i].y >= 600) {
                 bullets[i].y = 25;
                 bullets[i].active = 0;
@@ -229,16 +210,11 @@ void idel()
     
     glutPostRedisplay();
     
-    // Improved collision detection with better hitbox for alien ships
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
-            // Alien 1 collision - expanded hitbox for better gameplay
             if (bullets[i].x >= b1x1 && bullets[i].x <= b1x2 && 
                 bullets[i].y >= b1y1 && bullets[i].y <= b1y2 && brickActiveStatus[0]) {
                 
-                // Visual explosion effect will be added in draw_aliens
-                
-                // Reset alien position after hit
                 if (b1x2 < 600) {
                     b1y1 = 575;
                     b1x1 = (rand() % 11) * 50;
@@ -254,18 +230,15 @@ void idel()
                     b1y2 = 600;	
                 }
                 
-                // Reset bullet
                 bullets[i].active = 0;
                 activeBulletCount--;
                 bullets[i].y = 25;
                 live_score();
             }
             
-            // Alien 2 collision
             if (bullets[i].x >= b2x1 && bullets[i].x <= b2x2 && 
                 bullets[i].y >= b2y1 && bullets[i].y <= b2y2 && brickActiveStatus[1]) {
                 
-                // Reset alien position after hit
                 if (b2x2 > 0) {
                     b2y1 = 575;
                     b2x1 = (rand() % 11) * 50;
@@ -281,18 +254,15 @@ void idel()
                     b2y2 = 600;
                 }
                 
-                // Reset bullet
                 bullets[i].active = 0;
                 activeBulletCount--;
                 bullets[i].y = 25;
                 live_score();
             }
             
-            // Alien 3 collision
             if (bullets[i].x >= b3x1 && bullets[i].x <= b3x2 && 
                 bullets[i].y >= b3y1 && bullets[i].y <= b3y2 && brickActiveStatus[2]) {
                 
-                // Reset alien position after hit
                 if (b3x2 > 0) {
                     b3y1 = 575;
                     b3x1 = (rand() % 11) * 50;
@@ -308,18 +278,15 @@ void idel()
                     b3y2 = 600;
                 }	
                 
-                // Reset bullet
                 bullets[i].active = 0;
                 activeBulletCount--;
                 bullets[i].y = 25;
                 live_score();
             }
             
-            // Alien 4 collision
             if (bullets[i].x >= b4x1 && bullets[i].x <= b4x2 && 
                 bullets[i].y >= b4y1 && bullets[i].y <= b4y2 && brickActiveStatus[3]) {
                 
-                // Reset alien position after hit
                 if (b4x2 < 600) {
                     b4y1 = 575;
                     b4x1 = (rand() % 11) * 50;
@@ -335,7 +302,6 @@ void idel()
                     b4y2 = 600;	
                 }
                 
-                // Reset bullet
                 bullets[i].active = 0;
                 activeBulletCount--;
                 bullets[i].y = 25;
@@ -350,10 +316,9 @@ void keyb(unsigned char key,int x,int y)
     {  
         flag2=1;
         flag=1; 
-        // Find an inactive bullet and activate it
         for (int i = 0; i < MAX_BULLETS; i++) {
             if (!bullets[i].active) {
-                bullets[i].x = br3; // Set bullet x-position to current ship position when fired
+                bullets[i].x = br3;
                 bullets[i].y = 25;
                 bullets[i].active = 1;
                 activeBulletCount++;
@@ -398,25 +363,21 @@ void keyb(unsigned char key,int x,int y)
         exit(0);
 }
 
-// Function to draw and animate stars
 void draw_stars() {
-    // Update star twinkle effect
     for (int i = 0; i < MAX_STARS; i++) {
         stars[i].brightness += stars[i].twinkleSpeed;
         if (stars[i].brightness > 1.0) {
             stars[i].brightness = 0.0;
-            // Occasionally move stars for subtle movement effect
             if (rand() % 20 == 0) {
                 stars[i].y -= 0.5;
                 if (stars[i].y < 0) {
-                    stars[i].y = 600; // Wrap around to top
+                    stars[i].y = 600;
                     stars[i].x = rand() % 600;
                 }
             }
         }
         
-        // Draw star with current brightness
-        float brightness = 0.5 + stars[i].brightness * 0.5; // Range from 0.5 to 1.0
+        float brightness = 0.5 + stars[i].brightness * 0.5;
         glColor3f(brightness, brightness, brightness);
         glPointSize(stars[i].size);
         glBegin(GL_POINTS);
@@ -425,47 +386,38 @@ void draw_stars() {
     }
 }
 
-// Function to draw spaceship with engine glow
 void draw_spaceship() {
-    // Update engine glow effect
     engineGlowTimer += 0.05;
     if (engineGlowTimer > 1.0) engineGlowTimer = 0.0;
     
-    // Engine glow effect (changes with time) - draw this FIRST so it appears behind the ship
     float glowIntensity = 0.5 + 0.5 * sin(engineGlowTimer * 10.0);
     glColor3f(1.0, 0.4 * glowIntensity, 0.1 * glowIntensity);
     glBegin(GL_TRIANGLES);
         glVertex2f(br3 - 15, 5);
-        glVertex2f(br3, -15 - (glowIntensity * 10)); // Larger engine flame
+        glVertex2f(br3, -15 - (glowIntensity * 10));
         glVertex2f(br3 + 15, 5);
     glEnd();
     
-    // Main spaceship body - more futuristic design
     glColor3f(spaceshipColor[0], spaceshipColor[1], spaceshipColor[2]);
     
-    // Main hull
     glBegin(GL_POLYGON);
        glVertex2f(br1 + 5, 0);	
        glVertex2f(br2 - 5, 20);
-       glVertex2f(br3, 30); // Taller ship
+       glVertex2f(br3, 30);
        glVertex2f(br4 + 5, 20);
        glVertex2f(br5 - 5, 0);
     glEnd();
     
-    // Side wings
     glColor3f(0.7, 0.7, 0.9);
     glBegin(GL_TRIANGLES);
-        // Left wing
         glVertex2f(br1, 0);
         glVertex2f(br1 + 10, 10);
         glVertex2f(br3 - 10, 0);
-        // Right wing
         glVertex2f(br5, 0);
         glVertex2f(br5 - 10, 10);
         glVertex2f(br3 + 10, 0);
     glEnd();
     
-    // Cockpit - glowing blue
     glColor3f(0.2, 0.4, 1.0);
     glBegin(GL_POLYGON);
         glVertex2f(br3 - 8, 15);
@@ -474,7 +426,6 @@ void draw_spaceship() {
         glVertex2f(br3 + 8, 15);
     glEnd();
     
-    // Weapon mounts
     glColor3f(0.5, 0.5, 0.5);
     glPointSize(5.0);
     glBegin(GL_POINTS);
@@ -482,8 +433,7 @@ void draw_spaceship() {
         glVertex2f(br3 + 15, 10);
     glEnd();
     
-    // Add glowing effect for shield or energy field
-    if (rand() % 20 == 0) {  // Occasionally show shield flicker
+    if (rand() % 20 == 0) {
         glColor4f(0.2, 0.7, 1.0, 0.3);
         glBegin(GL_LINE_LOOP);
             for (int i = 0; i < 20; i++) {
@@ -494,21 +444,16 @@ void draw_spaceship() {
     }
 }
 
-// Function to draw aliens with more distinctive space theme
 void draw_aliens() {
-    // Update difficulty based on score
     update_difficulty();
     
-    // Check if game is already over
     if (gameOver) {
         gamestatus();
         return;
     }
     
-    // Count how many bricks are currently active
     int activeBrickCount = count_active_bricks();
     
-    // Check if we need to take action based on brick count
     if (activeBrickCount < minRequiredBricks) {
         lowBrickTimer++; 
         if (lowBrickTimer > 30) { 
@@ -524,12 +469,9 @@ void draw_aliens() {
         lowBrickTimer = 0;
     }
     
-    // ALIEN 1: Insectoid alien ship with pulsing eyes
     if (brickActiveStatus[0]) {
-        // Pulsing effect for alien tech
         float pulse = 0.7 + 0.3 * sin(engineGlowTimer * 15.0);
         
-        // Main body - bright green, larger
         glColor3f(alienColors[0][0] * pulse, alienColors[0][1] * pulse, alienColors[0][2] * pulse);
         glBegin(GL_POLYGON);
             glVertex2f(b1x1 + 5, b1y1);
@@ -540,14 +482,12 @@ void draw_aliens() {
             glVertex2f(b1x2 - 5, b1y1);
         glEnd();
         
-        // Insectoid head
         glBegin(GL_TRIANGLES);
             glVertex2f(b1x3 - 10, b1y1 + 15);
-            glVertex2f(b1x3, b1y1 + 30); // Tall pointy head
+            glVertex2f(b1x3, b1y1 + 30);
             glVertex2f(b1x3 + 10, b1y1 + 15);
         glEnd();
         
-        // Alien mandibles
         glLineWidth(2.0);
         glBegin(GL_LINES);
             glVertex2f(b1x3 - 10, b1y1 + 15);
@@ -556,21 +496,18 @@ void draw_aliens() {
             glVertex2f(b1x3 + 20, b1y1 + 20);
         glEnd();
         
-        // Glowing eyes - pulsing red
         glColor3f(1.0 * pulse, 0.0, 0.0); 
-        glPointSize(6.0); // Larger eyes
+        glPointSize(6.0);
         glBegin(GL_POINTS);
             glVertex2f(b1x3 - 6, b1y1 + 20);
             glVertex2f(b1x3 + 6, b1y1 + 20);
         glEnd();
         
-        // Movement
         if(b1y1 > 0) {
             float currentSpeed = baseSpeed * speedFactor;
             b1y1 = b1y1 - currentSpeed;
             b1y2 = b1y2 - currentSpeed;
         } else {
-            // Alien reached bottom - GAME OVER!
             gameOver = 1;
             gamestatus();
             return;
@@ -584,37 +521,29 @@ void draw_aliens() {
         }
     }
 
-    // ALIEN 2: Crystalline space entity
     if (brickActiveStatus[1]) {
-        // Draw crystalline entity
         glColor3f(alienColors[1][0], alienColors[1][1], alienColors[1][2]);
         
-        // Crystal body
         glBegin(GL_POLYGON);
-            glVertex2f(b2x3, b2y1); // Bottom point
+            glVertex2f(b2x3, b2y1);
             glVertex2f(b2x1 + 10, b2y1 + 15);
             glVertex2f(b2x3 - 10, b2y2);
             glVertex2f(b2x3 + 10, b2y2);
             glVertex2f(b2x2 - 10, b2y1 + 15);
         glEnd();
         
-        // Crystal spikes
         glBegin(GL_TRIANGLES);
-            // Left spike
             glVertex2f(b2x1 + 10, b2y1 + 15);
             glVertex2f(b2x1, b2y1 + 25);
             glVertex2f(b2x3 - 10, b2y2);
-            // Right spike
             glVertex2f(b2x2 - 10, b2y1 + 15);
             glVertex2f(b2x2, b2y1 + 25);
             glVertex2f(b2x3 + 10, b2y2);
-            // Top spike
             glVertex2f(b2x3 - 10, b2y2);
             glVertex2f(b2x3, b2y2 + 15);
             glVertex2f(b2x3 + 10, b2y2);
         glEnd();
         
-        // Energy core - pulsing white center
         float pulse = 0.5 + 0.5 * sin(engineGlowTimer * 20.0);
         glColor3f(pulse, pulse, pulse);
         glBegin(GL_POLYGON);
@@ -624,13 +553,11 @@ void draw_aliens() {
             }
         glEnd();
         
-        // Movement
         if(b2y1 > 0) {
             float currentSpeed = baseSpeed * 0.8 * speedFactor;
             b2y1 = b2y1 - currentSpeed;
             b2y2 = b2y2 - currentSpeed;
         } else {
-            // Alien reached bottom - GAME OVER!
             gameOver = 1;
             gamestatus();
             return;
@@ -641,22 +568,19 @@ void draw_aliens() {
         }
     }
 
-    // ALIEN 3: Classic UFO with enhanced lighting
     if (brickActiveStatus[2]) {
-        // UFO saucer shape - bigger
         glColor3f(alienColors[2][0], alienColors[2][1], alienColors[2][2]);
         glBegin(GL_POLYGON);
             for (int i = 0; i < 12; i++) {
                 float angle = i * 30.0 * 3.14159 / 180.0;
-                if (angle > 3.14159) { // Bottom half flatter
+                if (angle > 3.14159) {
                     glVertex2f(b3x3 + cos(angle) * 30, b3y1 + 15 + sin(angle) * 10);
-                } else { // Top half rounder
+                } else {
                     glVertex2f(b3x3 + cos(angle) * 30, b3y1 + 15 + sin(angle) * 20);
                 }
             }
         glEnd();
         
-        // Top dome - transparent
         glColor4f(0.8, 0.8, 1.0, 0.6);
         glBegin(GL_POLYGON);
             for (int i = 0; i < 10; i++) {
@@ -665,18 +589,16 @@ void draw_aliens() {
             }
         glEnd();
         
-        // Running lights - rotating
         float lightPos = engineGlowTimer * 12.0;
         glPointSize(5.0);
         for (int i = 0; i < 8; i++) {
             float angle = (i * 45.0 + lightPos) * 3.14159 / 180.0;
             float r = 0.0, g = 0.0, b = 0.0;
-            // Alternate colors
             switch(i % 4) {
-                case 0: r = 1.0; break; // Red
-                case 1: g = 1.0; break; // Green
-                case 2: b = 1.0; break; // Blue
-                case 3: r = 1.0; g = 1.0; break; // Yellow
+                case 0: r = 1.0; break;
+                case 1: g = 1.0; break;
+                case 2: b = 1.0; break;
+                case 3: r = 1.0; g = 1.0; break;
             }
             glColor3f(r, g, b);
             glBegin(GL_POINTS);
@@ -684,7 +606,6 @@ void draw_aliens() {
             glEnd();
         }
         
-        // Tractor beam - occasional
         if (rand() % 30 == 0) {
             glColor4f(0.5, 1.0, 0.5, 0.3);
             glBegin(GL_TRIANGLES);
@@ -694,13 +615,11 @@ void draw_aliens() {
             glEnd();
         }
         
-        // Movement
         if(b3y1 > 0) {
             float currentSpeed = baseSpeed * 0.9 * speedFactor;
             b3y1 = b3y1 - currentSpeed;
             b3y2 = b3y2 - currentSpeed;
         } else {
-            // Alien reached bottom - GAME OVER!
             gameOver = 1;
             gamestatus();
             return;
@@ -711,9 +630,7 @@ void draw_aliens() {
         }
     }
 
-    // ALIEN 4: Large battlecruiser
     if (brickActiveStatus[3]) {
-        // Main hull - larger
         glColor3f(alienColors[3][0], alienColors[3][1], alienColors[3][2]);
         glBegin(GL_POLYGON);
             glVertex2f(b4x1, b4y1 + 15);
@@ -722,27 +639,22 @@ void draw_aliens() {
             glVertex2f(b4x2, b4y1 + 15);
         glEnd();
         
-        // Command tower
         glBegin(GL_POLYGON);
             glVertex2f(b4x3 - 10, b4y1 + 25);
-            glVertex2f(b4x3 - 5, b4y2 + 10); // Taller
+            glVertex2f(b4x3 - 5, b4y2 + 10);
             glVertex2f(b4x3 + 5, b4y2 + 10);
             glVertex2f(b4x3 + 10, b4y1 + 25);
         glEnd();
         
-        // Side wings
         glBegin(GL_TRIANGLES);
-            // Left wing
             glVertex2f(b4x1, b4y1 + 15);
             glVertex2f(b4x1 - 15, b4y1 + 5);
             glVertex2f(b4x1 + 15, b4y1 + 15);
-            // Right wing
             glVertex2f(b4x2, b4y1 + 15);
             glVertex2f(b4x2 + 15, b4y1 + 5);
             glVertex2f(b4x2 - 15, b4y1 + 15);
         glEnd();
         
-        // Engine glow - pulsing
         float pulse = 0.5 + 0.5 * sin(engineGlowTimer * 8.0);
         glColor3f(1.0, 0.4 * pulse, 0.0);
         glBegin(GL_QUADS);
@@ -757,25 +669,21 @@ void draw_aliens() {
             glVertex2f(b4x3 + 20, b4y1);
         glEnd();
         
-        // Weapon beams - charging and firing effect
         float beamCharge = engineGlowTimer * 2.0;
-        if (beamCharge > 1.0) beamCharge = 2.0 - beamCharge; // oscillate between 0-1
+        if (beamCharge > 1.0) beamCharge = 2.0 - beamCharge;
         
-        if (beamCharge > 0.7) { // Only show beam when highly charged
+        if (beamCharge > 0.7) {
             glColor4f(1.0, 0.0, 0.0, beamCharge);
             glLineWidth(3.0 * beamCharge);
             glBegin(GL_LINES);
-                // Left cannon
                 glVertex2f(b4x3 - 15, b4y1 + 15);
                 glVertex2f(b4x3 - 15, b4y1 - 30 * beamCharge);
-                // Right cannon
                 glVertex2f(b4x3 + 15, b4y1 + 15);
                 glVertex2f(b4x3 + 15, b4y1 - 30 * beamCharge);
             glEnd();
         }
         
-        // Bridge windows
-        glColor3f(0.8, 0.8, 0.2); // Yellow windows
+        glColor3f(0.8, 0.8, 0.2);
         glPointSize(2.0);
         glBegin(GL_POINTS);
             for (int i = -3; i <= 3; i++) {
@@ -786,13 +694,11 @@ void draw_aliens() {
             }
         glEnd();
         
-        // Movement
         if(b4y1 > 0) {
             float currentSpeed = baseSpeed * 1.1 * speedFactor;
             b4y1 = b4y1 - currentSpeed;
             b4y2 = b4y2 - currentSpeed;
         } else {
-            // Alien reached bottom - GAME OVER!
             gameOver = 1;
             gamestatus();
             return;
@@ -803,7 +709,6 @@ void draw_aliens() {
         }
     }
     
-    // Ensure minimum brick count
     if (count_active_bricks() < minRequiredBricks) {
         for (int i = 0; i < 4; i++) {
             if (!brickActiveStatus[i]) {
@@ -816,21 +721,17 @@ void draw_aliens() {
     glutPostRedisplay();
 }
 
-// Function to draw laser beams (bullets)
 void draw_lasers() {
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].active) {
-            // Draw laser beam
             glColor3f(laserColor[0], laserColor[1], laserColor[2]);
             
-            // Draw a line for the laser beam
             glLineWidth(2.0);
             glBegin(GL_LINES);
                 glVertex2f(bullets[i].x, bullets[i].y);
                 glVertex2f(bullets[i].x, bullets[i].y + 10);
             glEnd();
             
-            // Add a glow effect around the laser
             glPointSize(5.0);
             glColor4f(laserColor[0], laserColor[1], laserColor[2], 0.5);
             glBegin(GL_POINTS);
@@ -845,10 +746,8 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT);
     
     if(flag2==0) {
-        // Space-themed start screen
         glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
         
-        // Draw some stars in the background
         for (int i = 0; i < MAX_STARS/2; i++) {
             float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
             glColor3f(brightness, brightness, brightness);
@@ -858,7 +757,6 @@ void display()
             glEnd();
         }
         
-        // Draw a colorful space nebula in the background
         glColor4f(0.5, 0.0, 0.5, 0.2);
         glBegin(GL_POLYGON);
             glVertex2f(0, 0);
@@ -885,10 +783,8 @@ void display()
     
     else if(flag2==1) {
         if(flag1==0) {
-            // Space-themed instructions screen
             glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
             
-            // More stars
             for (int i = 0; i < MAX_STARS/2; i++) {
                 float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
                 glColor3f(brightness, brightness, brightness);
@@ -909,26 +805,20 @@ void display()
         }
         
         else if(flag1==1) {
-            // Main gameplay screen
             glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
             
-            // Draw stars
             draw_stars();
             
-            // Draw spaceship
             draw_spaceship();
             
-            // Draw laser beams
             draw_lasers();
             
-            // Draw aliens (formerly bricks)
             draw_aliens();
             
-            // Show score with space theme
             glPushMatrix();
             glLoadIdentity();
             glRasterPos2f(10, 550);
-            glColor3f(0.7, 0.9, 0.7); // Light green futuristic text
+            glColor3f(0.7, 0.9, 0.7);
             char message[100] = {0};
             sprintf(message, "ALIEN KILLS: %d", count);
             int len = (int)strlen(message);
@@ -965,7 +855,6 @@ void gamestatus()
   glClear(GL_COLOR_BUFFER_BIT);
   glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
   
-  // Draw stars in background of game over screen
   for (int i = 0; i < MAX_STARS; i++) {
       float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
       glColor3f(brightness, brightness, brightness);
@@ -975,16 +864,14 @@ void gamestatus()
       glEnd();
   }
   
-  // Draw large exploding spaceship
   float centerX = 300;
   float centerY = 300;
   
-  // Draw explosion rays
   for (int i = 0; i < 12; i++) {
       float angle = i * 30.0 * 3.14159 / 180.0;
       float length = 50.0 + (rand() % 50);
       
-      glColor3f(1.0, 0.5, 0.0); // Orange-red explosion color
+      glColor3f(1.0, 0.5, 0.0);
       glLineWidth(2.0 + (rand() % 3));
       glBegin(GL_LINES);
           glVertex2f(centerX, centerY);
@@ -992,7 +879,6 @@ void gamestatus()
       glEnd();
   }
   
-  // Draw explosion core
   glColor3f(1.0, 0.8, 0.2);
   glBegin(GL_POLYGON);
       for (int i = 0; i < 16; i++) {
@@ -1001,7 +887,6 @@ void gamestatus()
       }
   glEnd();
   
-  // Game over text with space theme
   glColor3f(1.0, 0.0, 0.0);
   drawstring(150, 480, "MISSION FAILED");
   
@@ -1025,23 +910,20 @@ int main(int argc,char** argv)
        glutInitWindowPosition(0,0);
        glutCreateWindow("Space Invaders");
        
-       // Initialize random seed
        srand(time(NULL));
        
-       // Initialize all bullets to inactive
        for (int i = 0; i < MAX_BULLETS; i++) {
            bullets[i].x = 0;
            bullets[i].y = 25;
            bullets[i].active = 0;
        }
        
-       // Initialize stars with random positions and properties
        for (int i = 0; i < MAX_STARS; i++) {
            stars[i].x = rand() % 600;
            stars[i].y = rand() % 600;
-           stars[i].size = 0.5 + (rand() % 20) / 10.0; // Random size between 0.5 and 2.5
-           stars[i].brightness = (rand() % 100) / 100.0; // Random initial brightness
-           stars[i].twinkleSpeed = 0.005 + (rand() % 10) / 1000.0; // Random twinkle speed
+           stars[i].size = 0.5 + (rand() % 20) / 10.0;
+           stars[i].brightness = (rand() % 100) / 100.0;
+           stars[i].twinkleSpeed = 0.005 + (rand() % 10) / 1000.0;
        }
        
        myinit();
