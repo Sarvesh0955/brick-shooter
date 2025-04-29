@@ -3,4 +3,4 @@ clang project.c -o project -I/opt/homebrew/include -L/opt/homebrew/lib -framewor
 ./project
 
 linux
-gcc project.c -o project -lGL -lGLU -lglut -lSOIL
+gcc project.c -o project -lGL -lGLU -lglut -lm

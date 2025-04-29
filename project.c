@@ -1,934 +1,1210 @@
-#include<GL/glut.h>
-#include<stdio.h>
-#include<math.h>
-#include<stdlib.h>
-#include<string.h>
-#include<time.h>
+#include <GL/glut.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+
+#define M_PI 3.14159265358979323846
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 
 typedef struct {
-    GLfloat x;
-    GLfloat y;
+GLfloat r, g, b;
+} Color;
+
+Color COLOR_RED = {1.0f, 0.0f, 0.0f};
+Color COLOR_GREEN = {0.0f, 1.0f, 0.0f};
+Color COLOR_BLUE = {0.0f, 0.0f, 1.0f};
+Color COLOR_YELLOW = {1.0f, 1.0f, 0.0f};
+Color COLOR_PURPLE = {0.8f, 0.2f, 0.8f};
+Color COLOR_CYAN = {0.0f, 1.0f, 1.0f};
+Color COLOR_ORANGE = {1.0f, 0.6f, 0.0f};
+Color COLOR_WHITE = {1.0f, 1.0f, 1.0f};
+Color COLOR_BLACK = {0.0f, 0.0f, 0.0f};
+
+float randomFloat(float min, float max) {
+return min + ((float)rand() / RAND_MAX) * (max - min);
+}
+
+void setColor(Color color) {
+glColor3f(color.r, color.g, color.b);
+}
+
+// Draw string at specified position
+void drawString(float x, float y, const char* string, void* font) {
+    glRasterPos2f(x, y);
+    for (const char* c = string; *c != '\0'; c++) {
+        glutBitmapCharacter(font, *c);
+    }
+}
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_JPEG
+#include "stb_image.h"
+#define STBI_rgb_alpha 4
+
+// Game states
+#define SPLASH_STATE -1
+#define MENU_STATE 0
+#define INSTRUCTIONS_STATE 1
+#define PLAYING_STATE 2
+#define GAME_OVER_STATE 3
+#define LEVEL_COMPLETE_STATE 4
+
+typedef struct {
+    GLfloat x, y;
+    GLfloat width, height;
+    GLfloat speed;
+    Color color;
     int active;
+    int health;
+} GameObject;
+
+typedef struct {
+    GameObject base;
+    int type;  // 0: normal, 1: double damage, 2: fast
+    float angle;
 } Bullet;
 
 typedef struct {
-    GLfloat x;
-    GLfloat y;
-    GLfloat size;
-    GLfloat brightness;
-    GLfloat twinkleSpeed;
-} Star;
+    GameObject base;
+    int type;  // 0: standard, 1: armored, 2: boss
+    float movePattern;
+    int points;
+} Enemy;
 
-#define MAX_BULLETS 10
-#define MAX_STARS 100
+typedef struct {
+    GameObject base;
+    int type;  // 0: extra life, 1: shield, 2: rapid fire, 3: multi-shot
+    float rotationAngle;
+} PowerUp;
+
+// Game variables
+int gameState = MENU_STATE;
+int score = 0;
+int lives = 3;
+int level = 1;
+int maxLevel = 20;
+int enemiesKilled = 0;
+int enemiesRequired = 0;
+float difficultyMultiplier = 1.0f;
+int isPaused = 0;
+
+// Player variables
+GameObject player;
+int isMovingLeft = 0;
+int isMovingRight = 0;
+int isShooting = 0;
+int hasShield = 0;
+int hasRapidFire = 0;
+int hasMultiShot = 0;
+int shootCooldown = 0;
+int invincibilityFrames = 0;
+
+#define MAX_BULLETS 50
 Bullet bullets[MAX_BULLETS];
+
+#define MAX_ENEMIES 30
+Enemy enemies[MAX_ENEMIES];
+
+#define MAX_POWERUPS 5
+PowerUp powerUps[MAX_POWERUPS];
+
+#define MAX_STARS 100
+typedef struct {
+    float x, y;
+    float brightness;
+    float speed;
+} Star;
 Star stars[MAX_STARS];
-int activeBulletCount = 0;
 
-GLfloat spaceBlue[] = {0.0, 0.05, 0.2};
-GLfloat spaceshipColor[] = {0.8, 0.8, 0.9};
-GLfloat laserColor[] = {1.0, 0.4, 0.2};
-GLfloat alienColors[4][3] = {
-    {0.2, 0.8, 0.2},
-    {0.8, 0.2, 0.8},
-    {0.0, 0.7, 0.8},
-    {0.9, 0.6, 0.1}
-};
-GLfloat engineGlowTimer = 0;
+int lastFrameTime = 0;
+float deltaTime = 0.0f;
 
-GLfloat br1=0,br2=0,br3=25,br4=50,br5=50;
-GLint flag=0,flag2=0,flag1=0;
-GLfloat b1x1=0,b1x2=50,b1x3=25,b1y1=575,b1y2=600;
-GLfloat b2x1=500,b2x2=550,b2x3=525,b2y1=575,b2y2=600;
-GLfloat b3x1=300,b3x2=350,b3x3=325,b3y1=575,b3y2=600;
-GLfloat b4x1=200,b4x2=250,b4x3=225,b4y1=575,b4y2=600;
+GLuint splashTexture;
 
-GLfloat baseSpeed = 0.12;
-GLfloat speedFactor = 1.0;
-int lastSpeedIncrease = 0;
-int speedIncreaseInterval = 5;
-int maxActiveBricks = 4;
-int brickActiveStatus[4] = {1, 1, 1, 1};
-int respawnTimer = 0;
-int respawnDelay = 100;
-int minRequiredBricks = 2;
-int lowBrickTimer = 0;
-int lowBrickThreshold = 200;
-int gameOver = 0;
+void drawPlayer();
+void drawBullets();
+void drawEnemies();
+void drawPowerUps();
+void drawStars();
+void drawHUD();
+void drawLives();
+void drawExplosion(float x, float y, float size, Color color);
+void spawnEnemy();
+void spawnPowerUp(float x, float y);
+void checkCollisions();
+void updateGameState();
+void resetGame();
+void setupLevel(int level);
+void drawMenu();
+void drawInstructions();
+void drawGameOver();
+void drawLevelComplete();
+void drawSplashText();
 
-int count=0;
-void live_score ();
-void gamestatus();
-
-void randomize_brick_position(int brick_num) {
-    int x_pos = (rand() % 11) * 50;
+GLuint loadTexture(const char* filename) {
+    GLuint texture;
+    int width, height, channels;
     
-    switch(brick_num) {
-        case 1:
-            b1x1 = x_pos;
-            b1x2 = x_pos + 50;
-            b1x3 = x_pos + 25;
-            b1y1 = 575;
-            b1y2 = 600;
-            brickActiveStatus[0] = 1;
-            break;
-        case 2:
-            b2x1 = x_pos;
-            b2x2 = x_pos + 50;
-            b2x3 = x_pos + 25;
-            b2y1 = 575;
-            b2y2 = 600;
-            brickActiveStatus[1] = 1;
-            break;
-        case 3:
-            b3x1 = x_pos;
-            b3x2 = x_pos + 50;
-            b3x3 = x_pos + 25;
-            b3y1 = 575;
-            b3y2 = 600;
-            brickActiveStatus[2] = 1;
-            break;
-        case 4:
-            b4x1 = x_pos;
-            b4x2 = x_pos + 50;
-            b4x3 = x_pos + 25;
-            b4y1 = 575;
-            b4y2 = 600;
-            brickActiveStatus[3] = 1;
-            break;
+    unsigned char* image = stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
+    if (!image) {
+        printf("Failed to load texture: %s\n", filename);
+        return 0;
+    }
+
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+    stbi_image_free(image);
+    return texture;
+}
+
+void initGame() {
+    srand(time(NULL));
+    
+    player.x = WINDOW_WIDTH / 2;
+    player.y = 50;
+    player.width = 40;
+    player.height = 30;
+    player.speed = 300.0f;
+    player.color = COLOR_CYAN;
+    player.active = 1;
+    player.health = 100;
+    
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        bullets[i].base.active = 0;
+    }
+    
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        enemies[i].base.active = 0;
+    }
+    
+    for (int i = 0; i < MAX_POWERUPS; i++) {
+        powerUps[i].base.active = 0;
+    }
+    
+    for (int i = 0; i < MAX_STARS; i++) {
+        stars[i].x = randomFloat(0, WINDOW_WIDTH);
+        stars[i].y = randomFloat(0, WINDOW_HEIGHT);
+        stars[i].brightness = randomFloat(0.2f, 1.0f);
+        stars[i].speed = randomFloat(10.0f, 50.0f);
+    }
+    
+    setupLevel(level);
+}
+
+void setupLevel(int level) {
+    enemiesKilled = 0;
+    enemiesRequired = 10 + (level * 5);
+    difficultyMultiplier = 1.0f + (level * 0.1f);
+    
+    // Clear all enemies and powerups
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        enemies[i].base.active = 0;
+    }
+    
+    for (int i = 0; i < MAX_POWERUPS; i++) {
+        powerUps[i].base.active = 0;
+    }
+    
+    // Spawn initial enemies for this level
+    for (int i = 0; i < 5 + level; i++) {
+        spawnEnemy();
     }
 }
 
-void update_difficulty() {
-    if (count > lastSpeedIncrease + speedIncreaseInterval) {
-        speedFactor += 0.2;
-        lastSpeedIncrease = count;
+void resetGame() {
+    score = 0;
+    lives = 3;
+    level = 1;
+    hasShield = 0;
+    hasRapidFire = 0;
+    hasMultiShot = 0;
+    invincibilityFrames = 0;
+    
+    initGame();
+}
+
+void spawnEnemy() {
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (!enemies[i].base.active) {
+            enemies[i].base.active = 1;
+            enemies[i].base.x = randomFloat(40, WINDOW_WIDTH - 40);
+            enemies[i].base.y = WINDOW_HEIGHT + randomFloat(10, 50);
+            
+            // Determine enemy type with increasing difficulty
+            float typeRoll = randomFloat(0, 1);
+            if (typeRoll < 0.1f * level) {
+                // Boss type
+                enemies[i].type = 2;
+                enemies[i].base.width = 60;
+                enemies[i].base.height = 60;
+                enemies[i].base.speed = 30.0f * difficultyMultiplier;
+                enemies[i].base.health = 5;
+                enemies[i].base.color = COLOR_RED;
+                enemies[i].points = 230;
+            } else if (typeRoll < 0.3f * level) {
+                // Armored type
+                enemies[i].type = 1;
+                enemies[i].base.width = 40;
+                enemies[i].base.height = 40;
+                enemies[i].base.speed = 50.0f * difficultyMultiplier;
+                enemies[i].base.health = 3;
+                enemies[i].base.color = COLOR_ORANGE;
+                enemies[i].points = 100;
+            } else {
+                // Standard type
+                enemies[i].type = 0;
+                enemies[i].base.width = 30;
+                enemies[i].base.height = 30;
+                enemies[i].base.speed = 70.0f * difficultyMultiplier;
+                enemies[i].base.health = 1;
+                enemies[i].base.color = COLOR_GREEN;
+                enemies[i].points = 50;
+            }
+            
+            enemies[i].movePattern = randomFloat(0, 2*M_PI);
+            return;
+        }
+    }
+}
+
+void spawnPowerUp(float x, float y) {
+    if (randomFloat(0, 1) > 0.3f) return;
+    
+    for (int i = 0; i < MAX_POWERUPS; i++) {
+        if (!powerUps[i].base.active) {
+            powerUps[i].base.active = 1;
+            powerUps[i].base.x = x;
+            powerUps[i].base.y = y;
+            powerUps[i].base.width = 20;
+            powerUps[i].base.height = 20;
+            powerUps[i].base.speed = 80.0f;
+            
+            powerUps[i].type = rand() % 4;
+            
+            switch (powerUps[i].type) {
+                case 0: // Extra life
+                    powerUps[i].base.color = COLOR_RED;
+                    break;
+                case 1: // Shield
+                    powerUps[i].base.color = COLOR_BLUE;
+                    break;
+                case 2: // Rapid fire
+                    powerUps[i].base.color = COLOR_YELLOW;
+                    break;
+                case 3: // Multi-shot
+                    powerUps[i].base.color = COLOR_PURPLE;
+                    break;
+            }
+            
+            powerUps[i].rotationAngle = 0;
+            return;
+        }
+    }
+}
+
+void fireBullet(int type, float angleOffset) {
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (!bullets[i].base.active) {
+            bullets[i].base.active = 1;
+            bullets[i].base.x = player.x;
+            bullets[i].base.y = player.y + player.height / 2;
+            bullets[i].base.width = 5;
+            bullets[i].base.height = 15;
+            bullets[i].type = type;
+            bullets[i].angle = angleOffset;
+            
+            switch (type) {
+                case 0: // Normal bullet
+                    bullets[i].base.speed = 400.0f;
+                    bullets[i].base.color = COLOR_WHITE;
+                    break;
+                case 1: // Double damage bullet
+                    bullets[i].base.speed = 400.0f;
+                    bullets[i].base.color = COLOR_RED;
+                    bullets[i].base.width = 8;
+                    break;
+                case 2: // Fast bullet
+                    bullets[i].base.speed = 600.0f;
+                    bullets[i].base.color = COLOR_YELLOW;
+                    break;
+            }
+            return;
+        }
+    }
+}
+
+void drawLevelComplete() {
+    drawStars();
+    setColor(COLOR_GREEN);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT - 200, "LEVEL COMPLETE!", GLUT_BITMAP_TIMES_ROMAN_24);
+    
+    // Draw level info
+    setColor(COLOR_WHITE);
+    char buffer[64];
+    sprintf(buffer, "Level %d Completed!", level);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2 + 30, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    sprintf(buffer, "Current Score: %d", score);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    sprintf(buffer, "Next Level: %d", level + 1);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2 - 30, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_YELLOW);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 80, "Press SPACE to continue", GLUT_BITMAP_HELVETICA_18);
+}
+
+void updateGameState() {
+    int currentTime = glutGet(GLUT_ELAPSED_TIME);
+    deltaTime = (currentTime - lastFrameTime) / 1000.0f;
+    lastFrameTime = currentTime;
+    
+    if (isPaused) return;
+    
+    if (isMovingLeft && player.x > player.width / 2) {
+        player.x -= player.speed * deltaTime;
+    }
+    if (isMovingRight && player.x < WINDOW_WIDTH - player.width / 2) {
+        player.x += player.speed * deltaTime;
+    }
+    
+    if (isShooting && shootCooldown <= 0) {
+        if (hasMultiShot) {
+            fireBullet(0, -0.2f);
+            fireBullet(0, 0.0f);
+            fireBullet(0, 0.2f);
+        } else {
+            fireBullet(hasRapidFire ? 2 : 0, 0.0f);
+        }
         
-        if (count > 20) {
-            respawnDelay = 80;
-        }
-        if (count > 40) {
-            respawnDelay = 60;
-        }
+        shootCooldown = hasRapidFire ? 10 : 20;
     }
-}
-
-int count_active_bricks() {
-    int active_count = 0;
-    for (int i = 0; i < 4; i++) {
-        if (brickActiveStatus[i]) {
-            active_count++;
-        }
-    }
-    return active_count;
-}
-
-void ensure_minimum_bricks() {
-    int active_bricks = count_active_bricks();
     
-    if (active_bricks < 3) {
-        for (int i = 0; i < 4; i++) {
-            if (!brickActiveStatus[i]) {
-                randomize_brick_position(i + 1);
+    if (shootCooldown > 0) {
+        shootCooldown--;
+    }
+    
+    if (invincibilityFrames > 0) {
+        invincibilityFrames--;
+    }
+    
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (bullets[i].base.active) {
+            float vx = sin(bullets[i].angle) * bullets[i].base.speed * deltaTime;
+            float vy = cos(bullets[i].angle) * bullets[i].base.speed * deltaTime;
+            
+            bullets[i].base.x += vx;
+            bullets[i].base.y += vy;
+            
+            // Deactivate bullets that go off-screen
+            if (bullets[i].base.y > WINDOW_HEIGHT + 10) {
+                bullets[i].base.active = 0;
+            }
+        }
+    }
+    
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (enemies[i].base.active) {
+            // Move enemy down with some horizontal movement based on pattern
+            enemies[i].base.y -= enemies[i].base.speed * deltaTime;
+            enemies[i].base.x += sin(enemies[i].movePattern + enemies[i].base.y * 0.01) * 2.0f;
+            enemies[i].base.x = fmaxf(30, fminf(WINDOW_WIDTH - enemies[i].base.width - 10, enemies[i].base.x));
+            
+            // Deactivate enemies that go off-screen
+            if (enemies[i].base.y < -enemies[i].base.height) {
+                enemies[i].base.active = 0;
+                spawnEnemy(); 
+            }
+        }
+    }
+    
+    for (int i = 0; i < MAX_POWERUPS; i++) {
+        if (powerUps[i].base.active) {
+            powerUps[i].base.y -= powerUps[i].base.speed * deltaTime;
+            powerUps[i].rotationAngle += 2.0f;
+            
+            // Deactivate power-ups that go off-screen
+            if (powerUps[i].base.y < -powerUps[i].base.height) {
+                powerUps[i].base.active = 0;
+            }
+        }
+    }
+    
+    for (int i = 0; i < MAX_STARS; i++) {
+        stars[i].y -= stars[i].speed * deltaTime;
+        if (stars[i].y < 0) {
+            stars[i].y = WINDOW_HEIGHT;
+            stars[i].x = randomFloat(0, WINDOW_WIDTH);
+        }
+    }
+    
+    checkCollisions();
+    
+    int activeEnemies = 0;
+    for (int i = 0; i < MAX_ENEMIES; i++) {
+        if (enemies[i].base.active) {
+            activeEnemies++;
+        }
+    }
+    
+    if (activeEnemies < 5 + level) {
+        spawnEnemy();
+    }
+    
+    // Check for level completion
+    if (enemiesKilled >= enemiesRequired) {
+        if (level < maxLevel) {
+            // level++;
+            gameState = LEVEL_COMPLETE_STATE; 
+            return;  
+        } else {
+            gameState = GAME_OVER_STATE;
+        }
+    }
+}
+
+void checkCollisions() {
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (bullets[i].base.active) {
+            for (int j = 0; j < MAX_ENEMIES; j++) {
+                if (enemies[j].base.active) {
+                    float dx = bullets[i].base.x - enemies[j].base.x;
+                    float dy = bullets[i].base.y - enemies[j].base.y;
+                    float distance = sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < (bullets[i].base.width + enemies[j].base.width) / 2) {
+                        // Hit! Reduce enemy health
+                        int damage = (bullets[i].type == 1) ? 2 : 1;
+                        enemies[j].base.health -= damage;
+                        
+                        if (enemies[j].base.health <= 0) {
+                            // Enemy destroyed
+                            score += enemies[j].points;
+                            enemiesKilled++;
+                            
+                            // Spawn power-up from destroyed enemy
+                            spawnPowerUp(enemies[j].base.x, enemies[j].base.y);
+                            
+                            enemies[j].base.active = 0;
+                        }
+                        
+                        bullets[i].base.active = 0;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Player-enemy collisions
+    if (invincibilityFrames <= 0) {
+        for (int i = 0; i < MAX_ENEMIES; i++) {
+            if (enemies[i].base.active) {
+                float dx = player.x - enemies[i].base.x;
+                float dy = player.y - enemies[i].base.y;
+                float distance = sqrt(dx * dx + dy * dy);
                 
-                if (count_active_bricks() >= 3) {
+                if (distance < (player.width + enemies[i].base.width) / 2) {
+                    // Collision! Handle damage
+                    if (hasShield) {
+                        // Shield absorbs the hit
+                        hasShield = 0;
+                    } else {
+                        lives--;
+                        if (lives <= 0) {
+                            gameState = GAME_OVER_STATE;
+                        }
+                    }
+                    
+                    // Give temporary invincibility
+                    invincibilityFrames = 120;
+                    
+                    // Destroy the enemy
+                    enemies[i].base.active = 0;
                     break;
                 }
             }
         }
     }
+    
+    // Player-powerup collisions
+    for (int i = 0; i < MAX_POWERUPS; i++) {
+        if (powerUps[i].base.active) {
+            float dx = player.x - powerUps[i].base.x;
+            float dy = player.y - powerUps[i].base.y;
+            float distance = sqrt(dx * dx + dy * dy);
+            
+            if (distance < (player.width + powerUps[i].base.width) / 2) {
+                // Collect power-up
+                switch (powerUps[i].type) {
+                    case 0: // Extra life
+                        lives++;
+                        if (lives > 5) lives = 5; 
+                        break;
+                    case 1: // Shield
+                        hasShield = 1;
+                        break;
+                    case 2: // Rapid fire
+                        hasRapidFire = 200; 
+                        break;
+                    case 3: // Multi-shot
+                        hasMultiShot = 200; 
+                        break;
+                }
+                
+                powerUps[i].base.active = 0;
+            }
+        }
+    }
+    
+    // Reduce power-up durations
+    if (hasRapidFire > 0) hasRapidFire--;
+    if (hasMultiShot > 0) hasMultiShot--;
 }
 
-void drawstring(float x,float y,char *string)
-{
-char *c;
- glRasterPos2f(x,y);
- for(c=string;*c!='\0';c++)
- {
-  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,*c);
- }
-}
-void screen()
-{
-    glColor3f(1.0,1.0,1.0);
-    drawstring(100,550,"COMPUTER GRAPHICS MINI PROJECT");
-    drawstring(75,450,"Team Name:");
-    drawstring(250,450,"Spirit");
-    drawstring(75,500,"Game Name:");
-    drawstring(250,500,"Bricks Breaker");
-    drawstring(75,400,"By:");
-    drawstring(50,350,"Your Nane");
-    drawstring(150,250,"GUIDE:");
-    drawstring(150,200,"Guide Name");
-    drawstring(150,60,"Academic Year");
-    drawstring(250,20,"press 'f' or space to continue");
-glFlush();
-}
-void nextscreen()
-{
-    glColor3f(1.0,1.0,1.0);
-    drawstring(250,550,"INSTRUCTIONS");
-    drawstring(100,450,"press A to move left side");
-    drawstring(100,400,"press D to move left side");
-    drawstring(100,350,"press F or SPACE to fire bullet");
-    drawstring(100,300,"press Q to exit");
-    drawstring(150,20,"press 'n' to continue");
-glFlush();
-}
-
-void live_score ()
-{
-    int len,i;
-  char message[100] = {0};
-  glPushMatrix();
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
-    glRasterPos2f(10, 550);
-    glColor3f(0.0,0.5,0.1);
-    sprintf(message,"Score: %d",count);
-    len = (int)strlen(message);
-    for (i = 0;i < len;i++) 
-    {
-      glutBitmapCharacter(GLUT_BITMAP_8_BY_13, message[i]);
-    }
-  glPopMatrix();
-}
-
-
-void idel()
-{	
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bullets[i].active) {
-            if (bullets[i].y < 600)
-                bullets[i].y += 5.000;
-            if (bullets[i].y >= 600) {
-                bullets[i].y = 25;
-                bullets[i].active = 0;
-                activeBulletCount--;
-            }
-        }
-    }
     
-    glutPostRedisplay();
-    
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bullets[i].active) {
-            if (bullets[i].x >= b1x1 && bullets[i].x <= b1x2 && 
-                bullets[i].y >= b1y1 && bullets[i].y <= b1y2 && brickActiveStatus[0]) {
-                
-                if (b1x2 < 600) {
-                    b1y1 = 575;
-                    b1x1 = (rand() % 11) * 50;
-                    b1x2 = b1x1 + 50;
-                    b1x3 = b1x1 + 25;
-                    b1y2 = 600;
-                    count++;
-                } else {
-                    b1x1 = 0;
-                    b1x2 = 50;
-                    b1x3 = 25;
-                    b1y1 = 575;
-                    b1y2 = 600;	
-                }
-                
-                bullets[i].active = 0;
-                activeBulletCount--;
-                bullets[i].y = 25;
-                live_score();
-            }
+    switch (gameState) {
+        case SPLASH_STATE:
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, splashTexture);
             
-            if (bullets[i].x >= b2x1 && bullets[i].x <= b2x2 && 
-                bullets[i].y >= b2y1 && bullets[i].y <= b2y2 && brickActiveStatus[1]) {
-                
-                if (b2x2 > 0) {
-                    b2y1 = 575;
-                    b2x1 = (rand() % 11) * 50;
-                    b2x2 = b2x1 + 50;
-                    b2x3 = b2x1 + 25;
-                    b2y2 = 600;
-                    count++;
-                } else {
-                    b2x1 = 500;
-                    b2x2 = 550;
-                    b2x3 = 525;
-                    b2y1 = 575;
-                    b2y2 = 600;
-                }
-                
-                bullets[i].active = 0;
-                activeBulletCount--;
-                bullets[i].y = 25;
-                live_score();
-            }
+            glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(0, 0);
+            glTexCoord2f(1.0f, 0.0f); glVertex2f(WINDOW_WIDTH, 0);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f(WINDOW_WIDTH, WINDOW_HEIGHT);
+            glTexCoord2f(0.0f, 1.0f); glVertex2f(0, WINDOW_HEIGHT);
+            glEnd();
             
-            if (bullets[i].x >= b3x1 && bullets[i].x <= b3x2 && 
-                bullets[i].y >= b3y1 && bullets[i].y <= b3y2 && brickActiveStatus[2]) {
-                
-                if (b3x2 > 0) {
-                    b3y1 = 575;
-                    b3x1 = (rand() % 11) * 50;
-                    b3x2 = b3x1 + 50;
-                    b3x3 = b3x1 + 25;
-                    b3y2 = 600;
-                    count++;
-                } else {
-                    b3x1 = 300;
-                    b3x2 = 350;
-                    b3x3 = 325;
-                    b3y1 = 575;
-                    b3y2 = 600;
-                }	
-                
-                bullets[i].active = 0;
-                activeBulletCount--;
-                bullets[i].y = 25;
-                live_score();
-            }
+            glDisable(GL_TEXTURE_2D);
             
-            if (bullets[i].x >= b4x1 && bullets[i].x <= b4x2 && 
-                bullets[i].y >= b4y1 && bullets[i].y <= b4y2 && brickActiveStatus[3]) {
-                
-                if (b4x2 < 600) {
-                    b4y1 = 575;
-                    b4x1 = (rand() % 11) * 50;
-                    b4x2 = b4x1 + 50;
-                    b4x3 = b4x1 + 25;
-                    b4y2 = 600;
-                    count++;
-                } else {
-                    b4x1 = 200;
-                    b4x2 = 250;
-                    b4x3 = 225;
-                    b4y1 = 575;
-                    b4y2 = 600;	
-                }
-                
-                bullets[i].active = 0;
-                activeBulletCount--;
-                bullets[i].y = 25;
-                live_score();
+            drawSplashText();
+            
+            glColor3f(1.0, 1.0, 1.0);  
+            drawString(WINDOW_WIDTH/2 - 100, WINDOW_HEIGHT/2 - 200, 
+                "Press SPACE to continue", 
+                GLUT_BITMAP_HELVETICA_18);
+            break;
+            
+        case MENU_STATE:
+            drawMenu();
+            break;
+            
+        case INSTRUCTIONS_STATE:
+            drawInstructions();
+            break;
+            
+        case PLAYING_STATE:
+            // Draw game elements
+            drawStars();
+            
+            if (gameState == PLAYING_STATE) {
+                drawPlayer();
+                drawBullets();
+                drawEnemies();
+                drawPowerUps();
+                drawHUD();
+                drawLives();
             }
-        }
-    }
-}
-void keyb(unsigned char key,int x,int y)
-{	
-    if(key=='f'||key=='F' || key==' ') 
-    {  
-        flag2=1;
-        flag=1; 
-        for (int i = 0; i < MAX_BULLETS; i++) {
-            if (!bullets[i].active) {
-                bullets[i].x = br3;
-                bullets[i].y = 25;
-                bullets[i].active = 1;
-                activeBulletCount++;
-                break;
-            }
-        }
-        glutIdleFunc(idel);
+            break;
+            
+        case GAME_OVER_STATE:
+            drawGameOver();
+            break;
+            
+        case LEVEL_COMPLETE_STATE:
+            drawLevelComplete();
+            break;
     }
     
-    if(key=='n'||key=='N')
-    {  
-        flag1=1;
-        flag=1; 
-        glutIdleFunc(idel);
-    }
-    
-    if(key=='d'||key=='D')
-    {	
-        if(br5<600)
-        {
-            br1=br1+50;
-            br2=br2+50;
-            br3=br3+50;
-            br4=br4+50;
-            br5=br5+50;
-        }
-    }
-    
-    if(key=='a'||key=='A')
-    {	
-        if(br1>0)
-        {
-            br1=br1-50;
-            br2=br2-50;
-            br3=br3-50;
-            br4=br4-50;
-            br5=br5-50;
-        }
-    }
-    
-    if(key=='q')
-        exit(0);
+    glutSwapBuffers();
 }
 
-void draw_stars() {
-    for (int i = 0; i < MAX_STARS; i++) {
-        stars[i].brightness += stars[i].twinkleSpeed;
-        if (stars[i].brightness > 1.0) {
-            stars[i].brightness = 0.0;
-            if (rand() % 20 == 0) {
-                stars[i].y -= 0.5;
-                if (stars[i].y < 0) {
-                    stars[i].y = 600;
-                    stars[i].x = rand() % 600;
-                }
-            }
-        }
-        
-        float brightness = 0.5 + stars[i].brightness * 0.5;
-        glColor3f(brightness, brightness, brightness);
-        glPointSize(stars[i].size);
-        glBegin(GL_POINTS);
-            glVertex2f(stars[i].x, stars[i].y);
-        glEnd();
-    }
-}
-
-void draw_spaceship() {
-    engineGlowTimer += 0.05;
-    if (engineGlowTimer > 1.0) engineGlowTimer = 0.0;
-    
-    float glowIntensity = 0.5 + 0.5 * sin(engineGlowTimer * 10.0);
-    glColor3f(1.0, 0.4 * glowIntensity, 0.1 * glowIntensity);
-    glBegin(GL_TRIANGLES);
-        glVertex2f(br3 - 15, 5);
-        glVertex2f(br3, -15 - (glowIntensity * 10));
-        glVertex2f(br3 + 15, 5);
-    glEnd();
-    
-    glColor3f(spaceshipColor[0], spaceshipColor[1], spaceshipColor[2]);
-    
-    glBegin(GL_POLYGON);
-       glVertex2f(br1 + 5, 0);	
-       glVertex2f(br2 - 5, 20);
-       glVertex2f(br3, 30);
-       glVertex2f(br4 + 5, 20);
-       glVertex2f(br5 - 5, 0);
-    glEnd();
-    
-    glColor3f(0.7, 0.7, 0.9);
-    glBegin(GL_TRIANGLES);
-        glVertex2f(br1, 0);
-        glVertex2f(br1 + 10, 10);
-        glVertex2f(br3 - 10, 0);
-        glVertex2f(br5, 0);
-        glVertex2f(br5 - 10, 10);
-        glVertex2f(br3 + 10, 0);
-    glEnd();
-    
-    glColor3f(0.2, 0.4, 1.0);
-    glBegin(GL_POLYGON);
-        glVertex2f(br3 - 8, 15);
-        glVertex2f(br3 - 5, 25);
-        glVertex2f(br3 + 5, 25);
-        glVertex2f(br3 + 8, 15);
-    glEnd();
-    
-    glColor3f(0.5, 0.5, 0.5);
-    glPointSize(5.0);
-    glBegin(GL_POINTS);
-        glVertex2f(br3 - 15, 10);
-        glVertex2f(br3 + 15, 10);
-    glEnd();
-    
-    if (rand() % 20 == 0) {
-        glColor4f(0.2, 0.7, 1.0, 0.3);
-        glBegin(GL_LINE_LOOP);
-            for (int i = 0; i < 20; i++) {
-                float angle = i * 18.0 * 3.14159 / 180.0;
-                glVertex2f(br3 + cos(angle) * 35, 15 + sin(angle) * 35);
-            }
-        glEnd();
-    }
-}
-
-void draw_aliens() {
-    update_difficulty();
-    
-    if (gameOver) {
-        gamestatus();
+void drawPlayer() {
+    // Don't draw during invincibility frames (flashing effect)
+    if (invincibilityFrames > 0 && invincibilityFrames % 10 < 5) {
         return;
     }
-    
-    int activeBrickCount = count_active_bricks();
-    
-    if (activeBrickCount < minRequiredBricks) {
-        lowBrickTimer++; 
-        if (lowBrickTimer > 30) { 
-            ensure_minimum_bricks();
-            lowBrickTimer = 0; 
-        }
-        if (lowBrickTimer > lowBrickThreshold) {
-            gameOver = 1;
-            gamestatus();
-            return;
-        }
-    } else {
-        lowBrickTimer = 0;
-    }
-    
-    if (brickActiveStatus[0]) {
-        float pulse = 0.7 + 0.3 * sin(engineGlowTimer * 15.0);
-        
-        glColor3f(alienColors[0][0] * pulse, alienColors[0][1] * pulse, alienColors[0][2] * pulse);
-        glBegin(GL_POLYGON);
-            glVertex2f(b1x1 + 5, b1y1);
-            glVertex2f(b1x1, b1y1 + 15);
-            glVertex2f(b1x3 - 10, b1y2);
-            glVertex2f(b1x3 + 10, b1y2);
-            glVertex2f(b1x2, b1y1 + 15);
-            glVertex2f(b1x2 - 5, b1y1);
-        glEnd();
-        
-        glBegin(GL_TRIANGLES);
-            glVertex2f(b1x3 - 10, b1y1 + 15);
-            glVertex2f(b1x3, b1y1 + 30);
-            glVertex2f(b1x3 + 10, b1y1 + 15);
-        glEnd();
-        
-        glLineWidth(2.0);
-        glBegin(GL_LINES);
-            glVertex2f(b1x3 - 10, b1y1 + 15);
-            glVertex2f(b1x3 - 20, b1y1 + 20);
-            glVertex2f(b1x3 + 10, b1y1 + 15);
-            glVertex2f(b1x3 + 20, b1y1 + 20);
-        glEnd();
-        
-        glColor3f(1.0 * pulse, 0.0, 0.0); 
-        glPointSize(6.0);
-        glBegin(GL_POINTS);
-            glVertex2f(b1x3 - 6, b1y1 + 20);
-            glVertex2f(b1x3 + 6, b1y1 + 20);
-        glEnd();
-        
-        if(b1y1 > 0) {
-            float currentSpeed = baseSpeed * speedFactor;
-            b1y1 = b1y1 - currentSpeed;
-            b1y2 = b1y2 - currentSpeed;
-        } else {
-            gameOver = 1;
-            gamestatus();
-            return;
-        }
-    } else {
-        if (respawnTimer >= respawnDelay) {
-            randomize_brick_position(1);
-            respawnTimer = 0;
-        } else {
-            respawnTimer++;
-        }
-    }
 
-    if (brickActiveStatus[1]) {
-        glColor3f(alienColors[1][0], alienColors[1][1], alienColors[1][2]);
-        
-        glBegin(GL_POLYGON);
-            glVertex2f(b2x3, b2y1);
-            glVertex2f(b2x1 + 10, b2y1 + 15);
-            glVertex2f(b2x3 - 10, b2y2);
-            glVertex2f(b2x3 + 10, b2y2);
-            glVertex2f(b2x2 - 10, b2y1 + 15);
+    // Draw the main body of the ship (Star Wars X-Wing style)
+    setColor(player.color);
+    glBegin(GL_QUADS);
+        glVertex2f(player.x - player.width / 4, player.y); // Left side
+        glVertex2f(player.x + player.width / 4, player.y); // Right side
+        glVertex2f(player.x + player.width / 6, player.y + player.height); // Top right
+        glVertex2f(player.x - player.width / 6, player.y + player.height); // Top left
+    glEnd();
+
+    // Draw the wings
+    setColor(COLOR_WHITE);
+    glBegin(GL_TRIANGLES);
+        // Left wing
+        glVertex2f(player.x - player.width / 2, player.y + player.height / 3);
+        glVertex2f(player.x - player.width / 4, player.y + player.height / 3);
+        glVertex2f(player.x - player.width / 2, player.y - player.height / 3);
+
+        // Right wing
+        glVertex2f(player.x + player.width / 2, player.y + player.height / 3);
+        glVertex2f(player.x + player.width / 4, player.y + player.height / 3);
+        glVertex2f(player.x + player.width / 2, player.y - player.height / 3);
+    glEnd();
+
+    // Draw the cockpit
+    setColor(COLOR_BLACK);
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < 20; i++) {
+        float angle = 2.0f * M_PI * i / 20;
+        float x = player.x + cos(angle) * (player.width / 8);
+        float y = player.y + player.height / 1.5 + sin(angle) * (player.width / 8);
+        glVertex2f(x, y);
+    }
+    glEnd();
+
+    // Draw engine flames
+    setColor(COLOR_ORANGE);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(player.x - player.width / 6, player.y - player.height / 2);
+        glVertex2f(player.x - player.width / 12, player.y);
+        glVertex2f(player.x - player.width / 4, player.y - player.height / 3);
+
+        glVertex2f(player.x + player.width / 6, player.y - player.height / 2);
+        glVertex2f(player.x + player.width / 12, player.y);
+        glVertex2f(player.x + player.width / 4, player.y - player.height / 3);
+    glEnd();
+
+    // Draw shield if active
+    if (hasShield) {
+        setColor(COLOR_BLUE);
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 20; i++) {
+            float angle = 2.0f * M_PI * i / 20;
+            float x = player.x + cos(angle) * (player.width / 2 + 10);
+            float y = player.y + sin(angle) * (player.width / 2 + 10);
+            glVertex2f(x, y);
+        }
         glEnd();
-        
-        glBegin(GL_TRIANGLES);
-            glVertex2f(b2x1 + 10, b2y1 + 15);
-            glVertex2f(b2x1, b2y1 + 25);
-            glVertex2f(b2x3 - 10, b2y2);
-            glVertex2f(b2x2 - 10, b2y1 + 15);
-            glVertex2f(b2x2, b2y1 + 25);
-            glVertex2f(b2x3 + 10, b2y2);
-            glVertex2f(b2x3 - 10, b2y2);
-            glVertex2f(b2x3, b2y2 + 15);
-            glVertex2f(b2x3 + 10, b2y2);
-        glEnd();
-        
-        float pulse = 0.5 + 0.5 * sin(engineGlowTimer * 20.0);
-        glColor3f(pulse, pulse, pulse);
-        glBegin(GL_POLYGON);
-            for (int i = 0; i < 8; i++) {
-                float angle = i * 45.0 * 3.14159 / 180.0;
-                glVertex2f(b2x3 + cos(angle) * 8, b2y1 + 15 + sin(angle) * 8);
+    }
+}
+
+void drawBullets() {
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (bullets[i].base.active) {
+            setColor(bullets[i].base.color);
+            glBegin(GL_QUADS);
+                glVertex2f(bullets[i].base.x - bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
+                glVertex2f(bullets[i].base.x + bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
+                glVertex2f(bullets[i].base.x + bullets[i].base.width / 2, bullets[i].base.y + bullets[i].base.height / 2);
+                glVertex2f(bullets[i].base.x - bullets[i].base.width / 2, bullets[i].base.y + bullets[i].base.height / 2);
+            glEnd();
+            
+            // Draw trail effect
+            glBegin(GL_TRIANGLES);
+                glVertex2f(bullets[i].base.x - bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
+                glVertex2f(bullets[i].base.x + bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
+                glVertex2f(bullets[i].base.x, bullets[i].base.y - bullets[i].base.height);
+                glEnd();
             }
-        glEnd();
-        
-        if(b2y1 > 0) {
-            float currentSpeed = baseSpeed * 0.8 * speedFactor;
-            b2y1 = b2y1 - currentSpeed;
-            b2y2 = b2y2 - currentSpeed;
-        } else {
-            gameOver = 1;
-            gamestatus();
-            return;
-        }
-    } else {
-        if (respawnTimer >= respawnDelay/2) {
-            randomize_brick_position(2);
         }
     }
+    
+    void drawEnemies() {
+        for (int i = 0; i < MAX_ENEMIES; i++) {
+            if (enemies[i].base.active) {
+                setColor(enemies[i].base.color);
 
-    if (brickActiveStatus[2]) {
-        glColor3f(alienColors[2][0], alienColors[2][1], alienColors[2][2]);
-        glBegin(GL_POLYGON);
-            for (int i = 0; i < 12; i++) {
-                float angle = i * 30.0 * 3.14159 / 180.0;
-                if (angle > 3.14159) {
-                    glVertex2f(b3x3 + cos(angle) * 30, b3y1 + 15 + sin(angle) * 10);
-                } else {
-                    glVertex2f(b3x3 + cos(angle) * 30, b3y1 + 15 + sin(angle) * 20);
+                switch (enemies[i].type) {
+                    case 0: // Standard enemy (TIE Fighter style)
+                        // Draw hexagonal wing panels
+                        glBegin(GL_POLYGON);
+                        for (int j = 0; j < 6; j++) {
+                            float angle = 2.0f * M_PI * j / 6;
+                            float x = enemies[i].base.x - enemies[i].base.width / 2 + cos(angle) * enemies[i].base.width / 2;
+                            float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
+                            glVertex2f(x, y);
+                        }
+                        glEnd();
+                        
+                        glBegin(GL_POLYGON);
+                        for (int j = 0; j < 6; j++) {
+                            float angle = 2.0f * M_PI * j / 6;
+                            float x = enemies[i].base.x + enemies[i].base.width / 2 + cos(angle) * enemies[i].base.width / 2;
+                            float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
+                            glVertex2f(x, y);
+                        }
+                        glEnd();
+
+                        // Draw central cockpit
+                        setColor(COLOR_BLACK);
+                        glBegin(GL_QUADS);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y - enemies[i].base.height / 4);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y - enemies[i].base.height / 4);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y + enemies[i].base.height / 4);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y + enemies[i].base.height / 4);
+                        glEnd();
+                        
+                        // Draw connecting arms
+                        setColor(enemies[i].base.color);
+                        glBegin(GL_LINES);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y);
+                        
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y);
+                        glEnd();
+                        break;
+
+                    case 1: // Armored enemy (Star Destroyer style)
+                        // Draw triangular body
+                        glBegin(GL_TRIANGLES);
+                        glVertex2f(enemies[i].base.x, enemies[i].base.y + enemies[i].base.height / 2);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
+                        glEnd();
+
+                        // Draw command bridge
+                        setColor(COLOR_WHITE);
+                        glBegin(GL_QUADS);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 6, enemies[i].base.y);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 6, enemies[i].base.y);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 8, enemies[i].base.y + enemies[i].base.height / 6);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 8, enemies[i].base.y + enemies[i].base.height / 6);
+                        glEnd();
+                        
+                        // Draw engine glow
+                        setColor(COLOR_CYAN);
+                        glBegin(GL_QUADS);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 4, enemies[i].base.y - enemies[i].base.height / 2);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 4, enemies[i].base.y - enemies[i].base.height / 2);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 5, enemies[i].base.y - enemies[i].base.height / 2.5);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 5, enemies[i].base.y - enemies[i].base.height / 2.5);
+                        glEnd();
+                        break;
+
+                    case 2: // Boss enemy (Death Star style)
+                        // Draw main spherical body
+                        glBegin(GL_POLYGON);
+                        for (int j = 0; j < 20; j++) {
+                            float angle = 2.0f * M_PI * j / 20;
+                            float x = enemies[i].base.x + cos(angle) * enemies[i].base.width / 2;
+                            float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
+                            glVertex2f(x, y);
+                        }
+                        glEnd();
+
+                        // Draw equatorial trench
+                        setColor(COLOR_BLACK);
+                        glLineWidth(2.0);
+                        glBegin(GL_LINES);
+                        glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y);
+                        glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y);
+                        glEnd();
+                        glLineWidth(1.0);
+                        
+                        // Draw superlaser dish
+                        setColor(COLOR_GREEN);
+                        glBegin(GL_POLYGON);
+                        for (int j = 0; j < 10; j++) {
+                            float angle = 2.0f * M_PI * j / 10;
+                            float x = enemies[i].base.x + enemies[i].base.width / 4 + cos(angle) * enemies[i].base.width / 8;
+                            float y = enemies[i].base.y - enemies[i].base.height / 4 + sin(angle) * enemies[i].base.height / 8;
+                            glVertex2f(x, y);
+                        }
+                        glEnd();
+                        break;
                 }
             }
-        glEnd();
-        
-        glColor4f(0.8, 0.8, 1.0, 0.6);
-        glBegin(GL_POLYGON);
-            for (int i = 0; i < 10; i++) {
-                float angle = i * 36.0 * 3.14159 / 180.0;
-                glVertex2f(b3x3 + cos(angle) * 15, b3y1 + 25 + sin(angle) * 15);
-            }
-        glEnd();
-        
-        float lightPos = engineGlowTimer * 12.0;
-        glPointSize(5.0);
-        for (int i = 0; i < 8; i++) {
-            float angle = (i * 45.0 + lightPos) * 3.14159 / 180.0;
-            float r = 0.0, g = 0.0, b = 0.0;
-            switch(i % 4) {
-                case 0: r = 1.0; break;
-                case 1: g = 1.0; break;
-                case 2: b = 1.0; break;
-                case 3: r = 1.0; g = 1.0; break;
-            }
-            glColor3f(r, g, b);
-            glBegin(GL_POINTS);
-                glVertex2f(b3x3 + cos(angle) * 25, b3y1 + 15 + sin(angle) * 12);
-            glEnd();
-        }
-        
-        if (rand() % 30 == 0) {
-            glColor4f(0.5, 1.0, 0.5, 0.3);
-            glBegin(GL_TRIANGLES);
-                glVertex2f(b3x3, b3y1 + 5);
-                glVertex2f(b3x3 - 20, b3y1 - 40);
-                glVertex2f(b3x3 + 20, b3y1 - 40);
-            glEnd();
-        }
-        
-        if(b3y1 > 0) {
-            float currentSpeed = baseSpeed * 0.9 * speedFactor;
-            b3y1 = b3y1 - currentSpeed;
-            b3y2 = b3y2 - currentSpeed;
-        } else {
-            gameOver = 1;
-            gamestatus();
-            return;
-        }
-    } else {
-        if (respawnTimer >= respawnDelay/2 + 30) {
-            randomize_brick_position(3);
         }
     }
+        void drawPowerUps() {
+            for (int i = 0; i < MAX_POWERUPS; i++) {
+                if (powerUps[i].base.active) {
+                    setColor(powerUps[i].base.color);
+                    
+                    // Draw rotating diamond shape
+                    glPushMatrix();
+                    glTranslatef(powerUps[i].base.x, powerUps[i].base.y, 0);
+                    glRotatef(powerUps[i].rotationAngle, 0, 0, 1);
+                    
+                    glBegin(GL_QUADS);
+                    glVertex2f(0, powerUps[i].base.height / 2);
+                    glVertex2f(powerUps[i].base.width / 2, 0);
+                    glVertex2f(0, -powerUps[i].base.height / 2);
+                    glVertex2f(-powerUps[i].base.width / 2, 0);
+                    glEnd();
+                    
+                    setColor(COLOR_WHITE);
+                    switch (powerUps[i].type) {
+                        case 0: // Extra life (heart shape)
+                        glBegin(GL_TRIANGLES);
+                        glVertex2f(-5, 0);
+                        glVertex2f(0, 5);
+                        glVertex2f(5, 0);
+                    glEnd();
+                    glBegin(GL_TRIANGLES);
+                    glVertex2f(-5, 0);
+                    glVertex2f(0, -5);
+                    glVertex2f(5, 0);
+                    glEnd();
+                    break;
+                    
+                    case 1: // Shield (circle)
+                    glBegin(GL_LINE_LOOP);
+                    for (int j = 0; j < 10; j++) {
+                        float angle = 2.0f * M_PI * j / 10;
+                        float x = cos(angle) * 5;
+                        float y = sin(angle) * 5;
+                        glVertex2f(x, y);
+                    }
+                    glEnd();
+                    break;
+                    
+                    case 2: // Rapid fire (lightning bolt)
+                    glBegin(GL_LINES);
+                    glVertex2f(-3, 5);
+                    glVertex2f(0, 0);
+                    glVertex2f(0, 0);
+                    glVertex2f(3, -5);
+                    glEnd();
+                    break;
+                    
+                    case 3: // Multi-shot (three dots)
+                    glPointSize(3.0f);
+                    glBegin(GL_POINTS);
+                    glVertex2f(-4, 0);
+                    glVertex2f(0, 0);
+                    glVertex2f(4, 0);
+                    glEnd();
+                    break;
+                }
+                
+                glPopMatrix();
+            }
+        }
+    }
+    
+    // Draw starfield background
+    void drawStars() {
+        glPointSize(2.0f);
+        glBegin(GL_POINTS);
+        for (int i = 0; i < MAX_STARS; i++) {
+            glColor3f(stars[i].brightness, stars[i].brightness, stars[i].brightness);
+            glVertex2f(stars[i].x, stars[i].y);
+        }
+        glEnd();
+}
 
-    if (brickActiveStatus[3]) {
-        glColor3f(alienColors[3][0], alienColors[3][1], alienColors[3][2]);
-        glBegin(GL_POLYGON);
-            glVertex2f(b4x1, b4y1 + 15);
-            glVertex2f(b4x1 + 10, b4y1 + 25);
-            glVertex2f(b4x2 - 10, b4y1 + 25);
-            glVertex2f(b4x2, b4y1 + 15);
+void drawHUD() {
+    char buffer[64];
+    
+    setColor(COLOR_WHITE);
+    sprintf(buffer, "Score: %d", score);
+    drawString(10, WINDOW_HEIGHT - 20, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    sprintf(buffer, "Level: %d/%d", level, maxLevel);
+    drawString(WINDOW_WIDTH - 150, WINDOW_HEIGHT - 20, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    sprintf(buffer, "Enemies killed: %d/%d", enemiesKilled, enemiesRequired);
+    drawString(WINDOW_WIDTH / 2 - 70, WINDOW_HEIGHT - 20, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    if (hasRapidFire) {
+        setColor(COLOR_YELLOW);
+        drawString(10, WINDOW_HEIGHT - 40, "Rapid Fire", GLUT_BITMAP_HELVETICA_12);
+    }
+    
+    if (hasMultiShot) {
+        setColor(COLOR_PURPLE);
+        drawString(120, WINDOW_HEIGHT - 40, "Multi-Shot", GLUT_BITMAP_HELVETICA_12);
+    }
+    
+    if (hasShield) {
+        setColor(COLOR_BLUE);
+        drawString(220, WINDOW_HEIGHT - 40, "Shield", GLUT_BITMAP_HELVETICA_12);
+    }
+    
+    setColor(COLOR_WHITE);
+    sprintf(buffer, "FPS: %.1f", 1.0f / deltaTime);
+    drawString(WINDOW_WIDTH - 100, 20, buffer, GLUT_BITMAP_HELVETICA_12);
+}
+
+void drawLives() {
+    setColor(COLOR_RED);
+    for (int i = 0; i < lives; i++) {
+        glBegin(GL_TRIANGLES);
+            glVertex2f(20 + i * 25, 20);
+            glVertex2f(10 + i * 25, 40);
+            glVertex2f(30 + i * 25, 40);
         glEnd();
-        
-        glBegin(GL_POLYGON);
-            glVertex2f(b4x3 - 10, b4y1 + 25);
-            glVertex2f(b4x3 - 5, b4y2 + 10);
-            glVertex2f(b4x3 + 5, b4y2 + 10);
-            glVertex2f(b4x3 + 10, b4y1 + 25);
-        glEnd();
+    }
+}
+
+void drawExplosion(float x, float y, float size, Color color) {
+    setColor(color);
+    
+    for (int i = 0; i < 8; i++) {
+        float angle = 2.0f * M_PI * i / 8;
+        float nextAngle = 2.0f * M_PI * (i + 1) / 8;
         
         glBegin(GL_TRIANGLES);
-            glVertex2f(b4x1, b4y1 + 15);
-            glVertex2f(b4x1 - 15, b4y1 + 5);
-            glVertex2f(b4x1 + 15, b4y1 + 15);
-            glVertex2f(b4x2, b4y1 + 15);
-            glVertex2f(b4x2 + 15, b4y1 + 5);
-            glVertex2f(b4x2 - 15, b4y1 + 15);
+            glVertex2f(x, y);
+            glVertex2f(x + cos(angle) * size, y + sin(angle) * size);
+            glVertex2f(x + cos(nextAngle) * size, y + sin(nextAngle) * size);
         glEnd();
-        
-        float pulse = 0.5 + 0.5 * sin(engineGlowTimer * 8.0);
-        glColor3f(1.0, 0.4 * pulse, 0.0);
-        glBegin(GL_QUADS);
-            glVertex2f(b4x3 - 20, b4y1);
-            glVertex2f(b4x3 - 15, b4y1 + 5);
-            glVertex2f(b4x3 - 10, b4y1 + 5);
-            glVertex2f(b4x3 - 5, b4y1);
+    }
+}
+
+void drawMenu() {
+    drawStars();
+    
+    setColor(COLOR_CYAN);
+    drawString(WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT - 150, "SPACE DEFENDER", GLUT_BITMAP_TIMES_ROMAN_24);
+    
+    setColor(COLOR_WHITE);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2, "Press SPACE to Start", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 30, "Press I for Instructions", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 60, "Press Q to Quit", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_YELLOW);
+    drawString(WINDOW_WIDTH / 2 - 150, 100, "Computer Graphics Mini Project", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 80, 70, "Team: Spirit", GLUT_BITMAP_HELVETICA_18);
+}
+
+void drawInstructions() {
+    drawStars();
+    
+    setColor(COLOR_CYAN);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT - 100, "INSTRUCTIONS", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_WHITE);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 150, "A or Left Arrow - Move Left", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 180, "D or Right Arrow - Move Right", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 210, "Space - Fire", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 240, "P - Pause Game", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 270, "Q - Quit Game", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_RED);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 320, "Red Power-up - Extra Life", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_BLUE);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 350, "Blue Power-up - Shield", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_YELLOW);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 380, "Yellow Power-up - Rapid Fire", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_PURPLE);
+    drawString(WINDOW_WIDTH / 2 - 180, WINDOW_HEIGHT - 410, "Purple Power-up - Multi-Shot", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_WHITE);
+    drawString(WINDOW_WIDTH / 2 - 100, 100, "Press SPACE to return", GLUT_BITMAP_HELVETICA_18);
+}
+
+void drawGameOver() {
+    drawStars();
+    
+    setColor(COLOR_RED);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT - 200, "GAME OVER", GLUT_BITMAP_TIMES_ROMAN_24);
+    
+    setColor(COLOR_WHITE);
+    char buffer[64];
+    sprintf(buffer, "Final Score: %d", score);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT / 2, buffer, GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_YELLOW);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 50, "Press SPACE to play again", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 70, WINDOW_HEIGHT / 2 - 80, "Press Q to quit", GLUT_BITMAP_HELVETICA_18);
+}
+
+void drawSplashText() {
+    glColor3f(1.0, 0.8, 0.0);
+    drawString(WINDOW_WIDTH/2 - 245, WINDOW_HEIGHT/2 + 210, 
+        "CGV mini PROJECT : Star Wars x Space Defender", 
+        GLUT_BITMAP_TIMES_ROMAN_24);
+    
+    setColor(COLOR_CYAN);
+    drawString(WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2 + 110, 
+        "~ by GROUP 17", 
+        GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_WHITE);
+    drawString(WINDOW_WIDTH/2 - 75, WINDOW_HEIGHT/2 + 60, 
+    "Rachit(IIT2023100)", 
+        GLUT_BITMAP_HELVETICA_18);
+    
+    drawString(WINDOW_WIDTH/2 - 85, WINDOW_HEIGHT/2 + 20, 
+        "Sarvesh(IIT2023102)", 
+        GLUT_BITMAP_HELVETICA_18);
+    
+    drawString(WINDOW_WIDTH/2 - 90, WINDOW_HEIGHT/2 - 20, 
+        "Ashutosh(IIT2023028)",
+        GLUT_BITMAP_HELVETICA_18);
+    
+    drawString(WINDOW_WIDTH/2 - 95, WINDOW_HEIGHT/2 - 60, 
+        "Deepanshu(IIT2023013)", 
+        GLUT_BITMAP_HELVETICA_18);
+}
+
+void init() {
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT);
+    glMatrixMode(GL_MODELVIEW);
+    
+    splashTexture = loadTexture("new5.jpeg");
+    gameState = SPLASH_STATE;  
+    
+    initGame();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case ' ':
+            switch (gameState) {
+                case SPLASH_STATE:
+                    gameState = MENU_STATE;
+                    break;
+                    
+                case MENU_STATE:
+                    gameState = PLAYING_STATE;
+                    resetGame();
+                    break;
+                    
+                case INSTRUCTIONS_STATE:
+                    gameState = MENU_STATE;
+                    break;
+                    
+                case PLAYING_STATE:
+                    isShooting = 1;
+                    break;
+                    
+                case GAME_OVER_STATE:
+                case LEVEL_COMPLETE_STATE:
+                    if (gameState == LEVEL_COMPLETE_STATE) {
+                        gameState = PLAYING_STATE;
+                        level++;
+                        setupLevel(level);
+                    } else {
+                        gameState = MENU_STATE;
+                    }
+                    break;
+            }
+            break;
             
-            glVertex2f(b4x3 + 5, b4y1);
-            glVertex2f(b4x3 + 10, b4y1 + 5);
-            glVertex2f(b4x3 + 15, b4y1 + 5);
-            glVertex2f(b4x3 + 20, b4y1);
-        glEnd();
-        
-        float beamCharge = engineGlowTimer * 2.0;
-        if (beamCharge > 1.0) beamCharge = 2.0 - beamCharge;
-        
-        if (beamCharge > 0.7) {
-            glColor4f(1.0, 0.0, 0.0, beamCharge);
-            glLineWidth(3.0 * beamCharge);
-            glBegin(GL_LINES);
-                glVertex2f(b4x3 - 15, b4y1 + 15);
-                glVertex2f(b4x3 - 15, b4y1 - 30 * beamCharge);
-                glVertex2f(b4x3 + 15, b4y1 + 15);
-                glVertex2f(b4x3 + 15, b4y1 - 30 * beamCharge);
-            glEnd();
-        }
-        
-        glColor3f(0.8, 0.8, 0.2);
-        glPointSize(2.0);
-        glBegin(GL_POINTS);
-            for (int i = -3; i <= 3; i++) {
-                glVertex2f(b4x3 + i*3, b4y1 + 30);
+        case 'a':
+        case 'A':
+            isMovingLeft = 1;
+            break;
+            
+        case 'd':
+        case 'D':
+            isMovingRight = 1;
+            break;
+            
+        case 'i':
+        case 'I':
+            if (gameState == MENU_STATE) {
+                gameState = INSTRUCTIONS_STATE;
             }
-            for (int i = -2; i <= 2; i++) {
-                glVertex2f(b4x3 + i*3, b4y1 + 35);
+            break;
+            
+        case 'p':
+        case 'P':
+            if (gameState == PLAYING_STATE) {
+                isPaused = !isPaused;
             }
-        glEnd();
-        
-        if(b4y1 > 0) {
-            float currentSpeed = baseSpeed * 1.1 * speedFactor;
-            b4y1 = b4y1 - currentSpeed;
-            b4y2 = b4y2 - currentSpeed;
-        } else {
-            gameOver = 1;
-            gamestatus();
-            return;
-        }
-    } else {
-        if (respawnTimer >= respawnDelay/2 + 60) {
-            randomize_brick_position(4);
-        }
+            break;
+            
+        case 'q':
+        case 'Q':
+            exit(0);
+            break;
     }
-    
-    if (count_active_bricks() < minRequiredBricks) {
-        for (int i = 0; i < 4; i++) {
-            if (!brickActiveStatus[i]) {
-                randomize_brick_position(i + 1);
-                break;
-            }
-        }
+}
+
+void keyboardUp(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'a':
+        case 'A':
+            isMovingLeft = 0;
+            break;
+            
+        case 'd':
+        case 'D':
+            isMovingRight = 0;
+            break;
+            
+        case ' ':
+            isShooting = 0;
+            break;
     }
-    
+}
+
+void specialKeys(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_LEFT:
+            isMovingLeft = 1;
+            break;
+            
+        case GLUT_KEY_RIGHT:
+            isMovingRight = 1;
+            break;
+    }
+}
+
+void specialKeysUp(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_LEFT:
+            isMovingLeft = 0;
+            break;
+            
+        case GLUT_KEY_RIGHT:
+            isMovingRight = 0;
+            break;
+    }
+}
+
+void idle() {
+    updateGameState();
     glutPostRedisplay();
 }
 
-void draw_lasers() {
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (bullets[i].active) {
-            glColor3f(laserColor[0], laserColor[1], laserColor[2]);
-            
-            glLineWidth(2.0);
-            glBegin(GL_LINES);
-                glVertex2f(bullets[i].x, bullets[i].y);
-                glVertex2f(bullets[i].x, bullets[i].y + 10);
-            glEnd();
-            
-            glPointSize(5.0);
-            glColor4f(laserColor[0], laserColor[1], laserColor[2], 0.5);
-            glBegin(GL_POINTS);
-                glVertex2f(bullets[i].x, bullets[i].y + 5);
-            glEnd();
-        }
-    }
-}
-
-void display()
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    if(flag2==0) {
-        glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
-        
-        for (int i = 0; i < MAX_STARS/2; i++) {
-            float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
-            glColor3f(brightness, brightness, brightness);
-            glPointSize(0.5 + 2.0 * ((float)rand() / RAND_MAX));
-            glBegin(GL_POINTS);
-                glVertex2f(rand() % 600, rand() % 600);
-            glEnd();
-        }
-        
-        glColor4f(0.5, 0.0, 0.5, 0.2);
-        glBegin(GL_POLYGON);
-            glVertex2f(0, 0);
-            glVertex2f(200, 100);
-            glVertex2f(400, 50);
-            glVertex2f(600, 200);
-            glVertex2f(600, 0);
-        glEnd();
-        
-        glColor3f(1.0, 1.0, 1.0);
-        drawstring(100, 550, "COMPUTER GRAPHICS MINI PROJECT");
-        drawstring(75, 450, "Team Name:");
-        drawstring(250, 450, "Spirit");
-        drawstring(75, 500, "Game Name:");
-        drawstring(250, 500, "Space Invaders");
-        drawstring(75, 400, "By:");
-        drawstring(50, 350, "Your Name");
-        drawstring(150, 250, "GUIDE:");
-        drawstring(150, 200, "Guide Name");
-        drawstring(150, 60, "Academic Year");
-        drawstring(250, 20, "press 'f' or space to continue");
-        glFlush();
-    }
-    
-    else if(flag2==1) {
-        if(flag1==0) {
-            glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
-            
-            for (int i = 0; i < MAX_STARS/2; i++) {
-                float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
-                glColor3f(brightness, brightness, brightness);
-                glPointSize(0.5 + 2.0 * ((float)rand() / RAND_MAX));
-                glBegin(GL_POINTS);
-                    glVertex2f(rand() % 600, rand() % 600);
-                glEnd();
-            }
-            
-            glColor3f(1.0, 1.0, 1.0);
-            drawstring(250, 550, "INSTRUCTIONS");
-            drawstring(100, 450, "press A to move left");
-            drawstring(100, 400, "press D to move right");
-            drawstring(100, 350, "press F or SPACE to fire lasers");
-            drawstring(100, 300, "press Q to exit");
-            drawstring(150, 20, "press 'n' to continue");
-            glFlush();
-        }
-        
-        else if(flag1==1) {
-            glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
-            
-            draw_stars();
-            
-            draw_spaceship();
-            
-            draw_lasers();
-            
-            draw_aliens();
-            
-            glPushMatrix();
-            glLoadIdentity();
-            glRasterPos2f(10, 550);
-            glColor3f(0.7, 0.9, 0.7);
-            char message[100] = {0};
-            sprintf(message, "ALIEN KILLS: %d", count);
-            int len = (int)strlen(message);
-            for (int i = 0; i < len; i++) {
-                glutBitmapCharacter(GLUT_BITMAP_8_BY_13, message[i]);
-            }
-            glPopMatrix();
-            
-            glFlush();
-        }
-    }
-}
-
-void myinit()
-{
+void reshape(int w, int h) {
+    glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0,600,0,600);
+    gluOrtho2D(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT);
     glMatrixMode(GL_MODELVIEW);
-    glClearColor(0.0,0.0,0.2,1.0);
-}
-void Write(char *string)
-{ 
-  while(*string)
-  {
-    glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *string++);
-  }
 }
 
-void gamestatus()
-{
-  char tmp_str[100];
-
-  glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(spaceBlue[0], spaceBlue[1], spaceBlue[2], 1.0);
-  
-  for (int i = 0; i < MAX_STARS; i++) {
-      float brightness = 0.5 + 0.5 * ((float)rand() / RAND_MAX);
-      glColor3f(brightness, brightness, brightness);
-      glPointSize(0.5 + 2.0 * ((float)rand() / RAND_MAX));
-      glBegin(GL_POINTS);
-          glVertex2f(rand() % 600, rand() % 600);
-      glEnd();
-  }
-  
-  float centerX = 300;
-  float centerY = 300;
-  
-  for (int i = 0; i < 12; i++) {
-      float angle = i * 30.0 * 3.14159 / 180.0;
-      float length = 50.0 + (rand() % 50);
-      
-      glColor3f(1.0, 0.5, 0.0);
-      glLineWidth(2.0 + (rand() % 3));
-      glBegin(GL_LINES);
-          glVertex2f(centerX, centerY);
-          glVertex2f(centerX + cos(angle) * length, centerY + sin(angle) * length);
-      glEnd();
-  }
-  
-  glColor3f(1.0, 0.8, 0.2);
-  glBegin(GL_POLYGON);
-      for (int i = 0; i < 16; i++) {
-          float angle = i * 22.5 * 3.14159 / 180.0;
-          glVertex2f(centerX + cos(angle) * 30, centerY + sin(angle) * 30);
-      }
-  glEnd();
-  
-  glColor3f(1.0, 0.0, 0.0);
-  drawstring(150, 480, "MISSION FAILED");
-  
-  glColor3f(1.0, 1.0, 1.0);
-  glRasterPos2f(180, 400);
-  sprintf(tmp_str, "ALIEN KILLS: %d", count);
-  Write(tmp_str);
-  
-  glColor3f(0.7, 0.7, 1.0);
-  drawstring(120, 200, "Earth has been invaded!");
-  
-  glColor3f(1.0, 1.0, 0.0);
-  drawstring(150, 100, "Press Q to exit");
-}
-
-int main(int argc,char** argv)
-{
-       glutInit(&argc,argv);
-       glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
-       glutInitWindowSize(600,600);
-       glutInitWindowPosition(0,0);
-       glutCreateWindow("Space Invaders");
-       
-       srand(time(NULL));
-       
-       for (int i = 0; i < MAX_BULLETS; i++) {
-           bullets[i].x = 0;
-           bullets[i].y = 25;
-           bullets[i].active = 0;
-       }
-       
-       for (int i = 0; i < MAX_STARS; i++) {
-           stars[i].x = rand() % 600;
-           stars[i].y = rand() % 600;
-           stars[i].size = 0.5 + (rand() % 20) / 10.0;
-           stars[i].brightness = (rand() % 100) / 100.0;
-           stars[i].twinkleSpeed = 0.005 + (rand() % 10) / 1000.0;
-       }
-       
-       myinit();
-       glutDisplayFunc(display);
-       glutKeyboardFunc(keyb);
-       glutMainLoop();
-       return 0;
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Space Defender");
+    
+    init();
+    
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutKeyboardUpFunc(keyboardUp);
+    glutSpecialFunc(specialKeys);
+    glutSpecialUpFunc(specialKeysUp);
+    glutIdleFunc(idle);
+    
+    glutMainLoop();
+    return 0;
 }
