@@ -36,6 +36,10 @@ void keyboard(unsigned char key, int x, int y) {
         case ' ':
             switch (gameState) {
                 case SPLASH_STATE:
+                    gameState = STORY_STATE;  // Go to story screen first
+                    break;
+                    
+                case STORY_STATE:            // From story screen to menu
                     gameState = MENU_STATE;
                     break;
                     

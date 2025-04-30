@@ -8,6 +8,7 @@ void drawInstructions();
 void drawGameOver();
 void drawLevelComplete();
 void drawSplashText();
+void drawStoryScreen();
 
 // Forward declarations for game elements
 void drawPlayer();
@@ -43,6 +44,10 @@ void display() {
             drawString(WINDOW_WIDTH/2 - 100, WINDOW_HEIGHT/2 - 200, 
                 "Press SPACE to continue", 
                 GLUT_BITMAP_HELVETICA_18);
+            break;
+            
+        case STORY_STATE:
+            drawStoryScreen();
             break;
             
         case MENU_STATE:
@@ -169,14 +174,13 @@ void drawBullets() {
 void drawEnemies() {
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (enemies[i].base.active) {
-            setColor(enemies[i].base.color);
-
             switch (enemies[i].type) {
                 case 0: // Standard enemy (TIE Fighter style)
-                    // Draw hexagonal wing panels
+                    // Draw solar panel wings with more detail
+                    setColor(COLOR_DARK_GRAY);
                     glBegin(GL_POLYGON);
-                    for (int j = 0; j < 6; j++) {
-                        float angle = 2.0f * M_PI * j / 6;
+                    for (int j = 0; j < 8; j++) {
+                        float angle = 2.0f * M_PI * j / 8;
                         float x = enemies[i].base.x - enemies[i].base.width / 2 + cos(angle) * enemies[i].base.width / 2;
                         float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
                         glVertex2f(x, y);
@@ -184,50 +188,105 @@ void drawEnemies() {
                     glEnd();
                     
                     glBegin(GL_POLYGON);
-                    for (int j = 0; j < 6; j++) {
-                        float angle = 2.0f * M_PI * j / 6;
+                    for (int j = 0; j < 8; j++) {
+                        float angle = 2.0f * M_PI * j / 8;
                         float x = enemies[i].base.x + enemies[i].base.width / 2 + cos(angle) * enemies[i].base.width / 2;
                         float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
                         glVertex2f(x, y);
                     }
                     glEnd();
-
-                    // Draw central cockpit
+                    
+                    // Add wing details (TIE Fighter panel lines)
                     setColor(COLOR_BLACK);
-                    glBegin(GL_QUADS);
-                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y - enemies[i].base.height / 4);
-                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y - enemies[i].base.height / 4);
-                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y + enemies[i].base.height / 4);
-                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y + enemies[i].base.height / 4);
+                    for (int wing = -1; wing <= 1; wing += 2) {
+                        float centerX = enemies[i].base.x + wing * enemies[i].base.width / 2;
+                        float centerY = enemies[i].base.y;
+                        
+                        for (int j = 0; j < 4; j++) {
+                            float angle = M_PI / 4 + j * M_PI / 2;
+                            glBegin(GL_LINES);
+                            glVertex2f(centerX, centerY);
+                            glVertex2f(centerX + cos(angle) * enemies[i].base.width / 2,
+                                       centerY + sin(angle) * enemies[i].base.height / 2);
+                            glEnd();
+                        }
+                    }
+
+                    // Draw central cockpit (ball shape with highlight)
+                    setColor(COLOR_DARK_GRAY);
+                    glBegin(GL_POLYGON);
+                    for (int j = 0; j < 16; j++) {
+                        float angle = 2.0f * M_PI * j / 16;
+                        float x = enemies[i].base.x + cos(angle) * enemies[i].base.width / 5;
+                        float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 5;
+                        glVertex2f(x, y);
+                    }
                     glEnd();
                     
-                    // Draw connecting arms
-                    setColor(enemies[i].base.color);
-                    glBegin(GL_LINES);
-                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 10, enemies[i].base.y);
-                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y);
-                    
-                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 10, enemies[i].base.y);
-                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y);
+                    // Cockpit window
+                    setColor(COLOR_CYAN);
+                    glBegin(GL_POLYGON);
+                    for (int j = 0; j < 8; j++) {
+                        float angle = 2.0f * M_PI * j / 8;
+                        float x = enemies[i].base.x + cos(angle) * enemies[i].base.width / 10;
+                        float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 10;
+                        glVertex2f(x, y);
+                    }
                     glEnd();
+                    
+                    // Draw connecting arms with thickness
+                    setColor(COLOR_LIGHT_GRAY);
+                    for (int side = -1; side <= 1; side += 2) {
+                        glBegin(GL_QUADS);
+                        glVertex2f(enemies[i].base.x + side * enemies[i].base.width / 10, enemies[i].base.y + 3);
+                        glVertex2f(enemies[i].base.x + side * enemies[i].base.width / 2, enemies[i].base.y + 3);
+                        glVertex2f(enemies[i].base.x + side * enemies[i].base.width / 2, enemies[i].base.y - 3);
+                        glVertex2f(enemies[i].base.x + side * enemies[i].base.width / 10, enemies[i].base.y - 3);
+                        glEnd();
+                    }
                     break;
 
                 case 1: // Armored enemy (Star Destroyer style)
-                    // Draw triangular body
+                    // Draw triangular body with slight gradient effect
+                    setColor(COLOR_LIGHT_GRAY);
                     glBegin(GL_TRIANGLES);
                     glVertex2f(enemies[i].base.x, enemies[i].base.y + enemies[i].base.height / 2);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
                     glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
                     glEnd();
+                    
+                    // Add detail lines on the hull
+                    setColor(COLOR_DARK_GRAY);
+                    glLineWidth(1.5);
+                    glBegin(GL_LINES);
+                    // Horizontal lines
+                    for (int j = 1; j < 4; j++) {
+                        float y = enemies[i].base.y - enemies[i].base.height/2 + j*enemies[i].base.height/4;
+                        float widthAtY = (1 - (y - enemies[i].base.y + enemies[i].base.height/2)/enemies[i].base.height) * enemies[i].base.width;
+                        glVertex2f(enemies[i].base.x - widthAtY/2, y);
+                        glVertex2f(enemies[i].base.x + widthAtY/2, y);
+                    }
+                    glEnd();
+                    glLineWidth(1.0);
 
-                    // Draw command bridge
+                    // Draw command bridge with more detail
                     setColor(COLOR_WHITE);
                     glBegin(GL_QUADS);
-                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 6, enemies[i].base.y);
-                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 6, enemies[i].base.y);
+                    glVertex2f(enemies[i].base.x - enemies[i].base.width / 6, enemies[i].base.y - enemies[i].base.height/8);
+                    glVertex2f(enemies[i].base.x + enemies[i].base.width / 6, enemies[i].base.y - enemies[i].base.height/8);
                     glVertex2f(enemies[i].base.x + enemies[i].base.width / 8, enemies[i].base.y + enemies[i].base.height / 6);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 8, enemies[i].base.y + enemies[i].base.height / 6);
                     glEnd();
+                    
+                    // Add bridge windows
+                    setColor(COLOR_CYAN);
+                    glPointSize(2.0);
+                    glBegin(GL_POINTS);
+                    for (int j = -2; j <= 2; j++) {
+                        glVertex2f(enemies[i].base.x + j*5, enemies[i].base.y + enemies[i].base.height/12);
+                    }
+                    glEnd();
+                    glPointSize(1.0);
                     
                     // Draw engine glow
                     setColor(COLOR_CYAN);
@@ -240,32 +299,78 @@ void drawEnemies() {
                     break;
 
                 case 2: // Boss enemy (Death Star style)
-                    // Draw main spherical body
+                    // Draw main spherical body with gradient effect
+                    setColor(COLOR_LIGHT_GRAY);
                     glBegin(GL_POLYGON);
-                    for (int j = 0; j < 20; j++) {
-                        float angle = 2.0f * M_PI * j / 20;
+                    for (int j = 0; j < 30; j++) {
+                        float angle = 2.0f * M_PI * j / 30;
                         float x = enemies[i].base.x + cos(angle) * enemies[i].base.width / 2;
                         float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
+                        
+                        // Create slight gradient effect
+                        if (angle > M_PI) {
+                            setColor(COLOR_DARK_GRAY);
+                        } else {
+                            setColor(COLOR_LIGHT_GRAY);
+                        }
+                        
                         glVertex2f(x, y);
                     }
                     glEnd();
 
-                    // Draw equatorial trench
+                    // Draw surface details (random small craters/structures)
+                    setColor(COLOR_DARK_GRAY);
+                    glPointSize(2.0);
+                    glBegin(GL_POINTS);
+                    for (int j = 0; j < 20; j++) {
+                        float angle = 2.0f * M_PI * j / 20;
+                        float radius = (0.3 + 0.15 * (j % 3)) * enemies[i].base.width / 2;
+                        float x = enemies[i].base.x + cos(angle) * radius;
+                        float y = enemies[i].base.y + sin(angle) * radius;
+                        glVertex2f(x, y);
+                    }
+                    glEnd();
+                    glPointSize(1.0);
+
+                    // Draw equatorial trench with more detail
                     setColor(COLOR_BLACK);
-                    glLineWidth(2.0);
+                    glLineWidth(3.0);
                     glBegin(GL_LINES);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y);
                     glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y);
                     glEnd();
                     glLineWidth(1.0);
                     
-                    // Draw superlaser dish
+                    // Add trench details
+                    setColor(COLOR_DARK_GRAY);
+                    glBegin(GL_QUADS);
+                    for (int j = -3; j <= 3; j++) {
+                        float x = enemies[i].base.x + j * enemies[i].base.width / 7;
+                        glVertex2f(x - 3, enemies[i].base.y - 4);
+                        glVertex2f(x + 3, enemies[i].base.y - 4);
+                        glVertex2f(x + 3, enemies[i].base.y + 4);
+                        glVertex2f(x - 3, enemies[i].base.y + 4);
+                    }
+                    glEnd();
+                    
+                    // Draw superlaser dish with glow effect
                     setColor(COLOR_GREEN);
                     glBegin(GL_POLYGON);
-                    for (int j = 0; j < 10; j++) {
-                        float angle = 2.0f * M_PI * j / 10;
-                        float x = enemies[i].base.x + enemies[i].base.width / 4 + cos(angle) * enemies[i].base.width / 8;
+                    for (int j = 0; j < 16; j++) {
+                        float angle = 2.0f * M_PI * j / 16;
+                        float x = enemies[i].base.x - enemies[i].base.width / 4 + cos(angle) * enemies[i].base.width / 8;
                         float y = enemies[i].base.y - enemies[i].base.height / 4 + sin(angle) * enemies[i].base.height / 8;
+                        glVertex2f(x, y);
+                    }
+                    glEnd();
+                    
+                    // Add superlaser center
+                    setColor(COLOR_BRIGHT_GREEN);
+                    glBegin(GL_POLYGON);
+                    for (int j = 0; j < 8; j++) {
+                        float angle = 2.0f * M_PI * j / 8;
+                        float x = enemies[i].base.x - enemies[i].base.width / 4 + cos(angle) * enemies[i].base.width / 16;
+                        float y = enemies[i].base.y - enemies[i].base.height / 4 + sin(angle) * enemies[i].base.height / 16;
                         glVertex2f(x, y);
                     }
                     glEnd();
@@ -425,7 +530,7 @@ void drawMenu() {
     
     setColor(COLOR_YELLOW);
     drawString(WINDOW_WIDTH / 2 - 150, 100, "Computer Graphics Mini Project", GLUT_BITMAP_HELVETICA_18);
-    drawString(WINDOW_WIDTH / 2 - 80, 70, "Team: Spirit", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 80, 70, "Group 9", GLUT_BITMAP_HELVETICA_18);
 }
 
 void drawInstructions() {
@@ -500,6 +605,63 @@ void drawSplashText() {
     drawString(WINDOW_WIDTH/2 - 95, WINDOW_HEIGHT/2 - 60, 
         "Deepanshu(IIT2023013)", 
         GLUT_BITMAP_HELVETICA_18);
+}
+
+void drawStoryScreen() {
+    drawStars();
+    
+    setColor(COLOR_YELLOW);
+    
+    // Calculate text width for center alignment
+    int titleWidth = 0;
+    const char* title = "A LONG TIME AGO IN A GALAXY FAR, FAR AWAY...";
+    for (const char* c = title; *c != '\0'; c++) {
+        titleWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    
+    // Star Wars style title - centered
+    drawString(WINDOW_WIDTH / 2 - titleWidth / 2, WINDOW_HEIGHT - 150, 
+        title, GLUT_BITMAP_HELVETICA_18);
+    
+    // Main storyline text - centered
+    const char* line1 = "During a crucial journey from Tatooine to a Senate meeting,";
+    const char* line2 = "Anakin Skywalker encounters a vast fleet of Separatist forces.";
+    const char* line3 = "Help Anakin fight through the enemy ships and save the Republic!";
+    
+    int line1Width = 0, line2Width = 0, line3Width = 0;
+    
+    for (const char* c = line1; *c != '\0'; c++) {
+        line1Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    
+    for (const char* c = line2; *c != '\0'; c++) {
+        line2Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    
+    for (const char* c = line3; *c != '\0'; c++) {
+        line3Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    
+    drawString(WINDOW_WIDTH / 2 - line1Width / 2, WINDOW_HEIGHT / 2 + 50, 
+        line1, GLUT_BITMAP_HELVETICA_18);
+    
+    drawString(WINDOW_WIDTH / 2 - line2Width / 2, WINDOW_HEIGHT / 2, 
+        line2, GLUT_BITMAP_HELVETICA_18);
+    
+    drawString(WINDOW_WIDTH / 2 - line3Width / 2, WINDOW_HEIGHT / 2 - 50, 
+        line3, GLUT_BITMAP_HELVETICA_18);
+    
+    // Continue button - centered
+    const char* continueText = "Press SPACE to continue";
+    int continueWidth = 0;
+    
+    for (const char* c = continueText; *c != '\0'; c++) {
+        continueWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    
+    setColor(COLOR_WHITE);
+    drawString(WINDOW_WIDTH / 2 - continueWidth / 2, WINDOW_HEIGHT / 2 - 150, 
+        continueText, GLUT_BITMAP_HELVETICA_18);
 }
 
 void drawLevelComplete() {

@@ -11,6 +11,7 @@
 #define SPLASH_STATE -1
 #define MENU_STATE 0
 #define INSTRUCTIONS_STATE 1
+#define STORY_STATE 5  // New state for Star Wars storyline
 #define PLAYING_STATE 2
 #define GAME_OVER_STATE 3
 #define LEVEL_COMPLETE_STATE 4
@@ -70,6 +71,9 @@ extern Color COLOR_CYAN;
 extern Color COLOR_ORANGE;
 extern Color COLOR_WHITE;
 extern Color COLOR_BLACK;
+extern Color COLOR_DARK_GRAY;
+extern Color COLOR_LIGHT_GRAY;
+extern Color COLOR_BRIGHT_GREEN;
 
 // Game state variables
 extern int gameState;

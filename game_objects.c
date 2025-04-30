@@ -20,6 +20,9 @@ Color COLOR_CYAN = {0.0f, 1.0f, 1.0f};
 Color COLOR_ORANGE = {1.0f, 0.6f, 0.0f};
 Color COLOR_WHITE = {1.0f, 1.0f, 1.0f};
 Color COLOR_BLACK = {0.0f, 0.0f, 0.0f};
+Color COLOR_DARK_GRAY = {0.2f, 0.2f, 0.2f};
+Color COLOR_LIGHT_GRAY = {0.8f, 0.8f, 0.8f};
+Color COLOR_BRIGHT_GREEN = {0.4f, 1.0f, 0.4f};
 
 // Game state variables
 int gameState = MENU_STATE;
