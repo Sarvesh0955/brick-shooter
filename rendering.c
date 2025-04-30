@@ -678,58 +678,101 @@ void drawSplashText() {
 void drawStoryScreen() {
     drawStars();
     
+    // Get current time for animations
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    
+    // Title with glowing effect
     setColor(COLOR_YELLOW);
+    float glow = (sin(time * 2.0f) + 1.0f) * 0.3f;
+    glColor4f(1.0f, 1.0f, 0.0f, 0.7f + glow);
     
-    // Calculate text width for center alignment
-    int titleWidth = 0;
     const char* title = "A LONG TIME AGO IN A GALAXY FAR, FAR AWAY...";
+    int titleWidth = 0;
     for (const char* c = title; *c != '\0'; c++) {
-        titleWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+        titleWidth += glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, *c);
     }
     
-    // Star Wars style title - centered
-    drawString(WINDOW_WIDTH / 2 - titleWidth / 2, WINDOW_HEIGHT - 150, 
-        title, GLUT_BITMAP_HELVETICA_18);
+    // Draw title with scaling effect
+    glPushMatrix();
+    glTranslatef(WINDOW_WIDTH / 2, WINDOW_HEIGHT - 150, 0);
+    float scale = 1.0f + sin(time * 1.5f) * 0.05f;
+    glScalef(scale, scale, 1.0f);
+    drawString(-titleWidth / 2, 0, title, GLUT_BITMAP_TIMES_ROMAN_24);
+    glPopMatrix();
     
-    // Main storyline text - centered
-    const char* line1 = "During a crucial journey from Tatooine to a Senate meeting,";
-    const char* line2 = "Anakin Skywalker encounters a vast fleet of Separatist forces.";
-    const char* line3 = "Help Anakin fight through the enemy ships and save the Republic!";
+    // Subtitle with different color
+    setColor(COLOR_CYAN);
+    const char* subtitle = "Chapter I: The IIITA Chronicles";
+    int subtitleWidth = 0;
+    for (const char* c = subtitle; *c != '\0'; c++) {
+        subtitleWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+    drawString(WINDOW_WIDTH / 2 - subtitleWidth / 2, WINDOW_HEIGHT - 200, 
+        subtitle, GLUT_BITMAP_HELVETICA_18);
     
-    int line1Width = 0, line2Width = 0, line3Width = 0;
+    // Story text with fade-in effect
+    float alpha = (sin(time) + 1.0f) * 0.5f;
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
-    for (const char* c = line1; *c != '\0'; c++) {
-        line1Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    const char* line1 = "In the prestigious halls of IIITA, a young Jedi programmer named";
+    const char* line2 = "Mr. Pavan discovers an ancient computer infected by the Dark Side.";
+    const char* line3 = "The Separatist virus army threatens to corrupt all systems.";
+    const char* line4 = "As IIITA's last hope, you must pilot your ship through";
+    const char* line5 = "the digital space and defend the Republic's sacred code!";
+    
+    // Calculate widths for center alignment
+    int lineWidths[5] = {0};
+    const char* lines[] = {line1, line2, line3, line4, line5};
+    
+    for (int i = 0; i < 5; i++) {
+        for (const char* c = lines[i]; *c != '\0'; c++) {
+            lineWidths[i] += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+        }
     }
     
-    for (const char* c = line2; *c != '\0'; c++) {
-        line2Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    // Draw story text with vertical spacing
+    for (int i = 0; i < 5; i++) {
+        drawString(WINDOW_WIDTH / 2 - lineWidths[i] / 2, 
+            WINDOW_HEIGHT / 2 + 60 - (i * 30), 
+            lines[i], GLUT_BITMAP_HELVETICA_18);
     }
     
-    for (const char* c = line3; *c != '\0'; c++) {
-        line3Width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
+    // Epic call to action with pulsing effect
+    setColor(COLOR_RED);
+    float pulse = (sin(time * 3.0f) + 1.0f) * 0.5f;
+    glColor4f(1.0f, 0.0f, 0.0f, 0.5f + pulse);
+    
+    const char* callToAction = "Will you accept this mission, young Padawan?";
+    int ctaWidth = 0;
+    for (const char* c = callToAction; *c != '\0'; c++) {
+        ctaWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
     }
+    drawString(WINDOW_WIDTH / 2 - ctaWidth / 2, WINDOW_HEIGHT / 2 - 110, 
+        callToAction, GLUT_BITMAP_HELVETICA_18);
     
-    drawString(WINDOW_WIDTH / 2 - line1Width / 2, WINDOW_HEIGHT / 2 + 50, 
-        line1, GLUT_BITMAP_HELVETICA_18);
-    
-    drawString(WINDOW_WIDTH / 2 - line2Width / 2, WINDOW_HEIGHT / 2, 
-        line2, GLUT_BITMAP_HELVETICA_18);
-    
-    drawString(WINDOW_WIDTH / 2 - line3Width / 2, WINDOW_HEIGHT / 2 - 50, 
-        line3, GLUT_BITMAP_HELVETICA_18);
-    
-    // Continue button - centered
-    const char* continueText = "Press SPACE to continue";
+    // Continue text with blinking effect
+    const char* continueText = "Press SPACE to begin your journey";
     int continueWidth = 0;
-    
     for (const char* c = continueText; *c != '\0'; c++) {
         continueWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
     }
     
-    setColor(COLOR_WHITE);
-    drawString(WINDOW_WIDTH / 2 - continueWidth / 2, WINDOW_HEIGHT / 2 - 150, 
-        continueText, GLUT_BITMAP_HELVETICA_18);
+    if ((int)(time * 2) % 2) { // Blinking effect
+        setColor(COLOR_WHITE);
+        drawString(WINDOW_WIDTH / 2 - continueWidth / 2, WINDOW_HEIGHT / 2 - 150, 
+            continueText, GLUT_BITMAP_HELVETICA_18);
+    }
+    
+    // Draw small decorative Jedi symbol
+    setColor(COLOR_YELLOW);
+    glBegin(GL_TRIANGLES);
+    float symbolSize = 20.0f;
+    float centerX = WINDOW_WIDTH / 2;
+    float centerY = WINDOW_HEIGHT / 2 - 200;
+    glVertex2f(centerX, centerY + symbolSize);
+    glVertex2f(centerX - symbolSize, centerY - symbolSize);
+    glVertex2f(centerX + symbolSize, centerY - symbolSize);
+    glEnd();
 }
 
 void drawLevelComplete() {
