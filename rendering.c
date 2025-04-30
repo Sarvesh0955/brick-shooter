@@ -19,6 +19,7 @@ void drawStars();
 void drawHUD();
 void drawLives();
 void drawExplosion(float x, float y, float size, Color color);
+void drawExplosions();
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -67,12 +68,15 @@ void display() {
                 drawBullets();
                 drawEnemies();
                 drawPowerUps();
+                drawExplosions(); // Draw all active explosions
                 drawHUD();
                 drawLives();
             }
             break;
             
         case GAME_OVER_STATE:
+            drawStars();
+            drawExplosions(); // Draw explosions on game over screen too
             drawGameOver();
             break;
             
@@ -505,15 +509,49 @@ void drawLives() {
 void drawExplosion(float x, float y, float size, Color color) {
     setColor(color);
     
-    for (int i = 0; i < 8; i++) {
-        float angle = 2.0f * M_PI * i / 8;
-        float nextAngle = 2.0f * M_PI * (i + 1) / 8;
+    // Draw outer explosion rays
+    for (int i = 0; i < 12; i++) {
+        float angle = 2.0f * M_PI * i / 12;
+        float nextAngle = 2.0f * M_PI * (i + 1) / 12;
         
         glBegin(GL_TRIANGLES);
             glVertex2f(x, y);
             glVertex2f(x + cos(angle) * size, y + sin(angle) * size);
             glVertex2f(x + cos(nextAngle) * size, y + sin(nextAngle) * size);
         glEnd();
+    }
+    
+    // Draw inner explosion with different color for depth effect
+    Color innerColor = {1.0f, 0.7f, 0.2f}; // Bright orange
+    setColor(innerColor);
+    
+    for (int i = 0; i < 8; i++) {
+        float angle = 2.0f * M_PI * i / 8 + 0.3; // Offset for variation
+        float nextAngle = 2.0f * M_PI * (i + 1) / 8 + 0.3;
+        
+        glBegin(GL_TRIANGLES);
+            glVertex2f(x, y);
+            glVertex2f(x + cos(angle) * size * 0.6f, y + sin(angle) * size * 0.6f);
+            glVertex2f(x + cos(nextAngle) * size * 0.6f, y + sin(nextAngle) * size * 0.6f);
+        glEnd();
+    }
+    
+    // Draw center glow
+    Color centerColor = {1.0f, 1.0f, 0.5f}; // Bright yellow
+    setColor(centerColor);
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < 16; i++) {
+        float angle = 2.0f * M_PI * i / 16;
+        glVertex2f(x + cos(angle) * size * 0.3f, y + sin(angle) * size * 0.3f);
+    }
+    glEnd();
+}
+
+void drawExplosions() {
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+        if (explosions[i].active) {
+            drawExplosion(explosions[i].x, explosions[i].y, explosions[i].size, explosions[i].color);
+        }
     }
 }
 

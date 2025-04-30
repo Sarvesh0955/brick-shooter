@@ -131,7 +131,15 @@ void checkCollisions() {
                         int damage = (bullets[i].type == 1) ? 2 : 1;
                         enemies[j].base.health -= damage;
                         
+                        // Create small impact explosion at bullet hit point
+                        Color impactColor = {1.0f, 0.8f, 0.4f}; // Yellow-orange for impact
+                        createExplosion(bullets[i].base.x, bullets[i].base.y, 10.0f, impactColor);
+                        
                         if (enemies[j].base.health <= 0) {
+                            // Enemy destroyed - create larger explosion
+                            createExplosion(enemies[j].base.x, enemies[j].base.y, 
+                                  enemies[j].base.width, enemies[j].base.color);
+                            
                             // Enemy destroyed
                             score += enemies[j].points;
                             enemiesKilled++;
@@ -161,14 +169,28 @@ void checkCollisions() {
                 if (distance < (player.width + enemies[i].base.width) / 2) {
                     // Collision! Handle damage
                     if (hasShield) {
+                        // Shield absorbs the hit - create shield impact explosion
+                        Color shieldColor = {0.3f, 0.3f, 1.0f}; // Blue for shield impact
+                        createExplosion(player.x, player.y, player.width, shieldColor);
+                        
                         // Shield absorbs the hit
                         hasShield = 0;
                     } else {
+                        // Player takes damage - create explosion
+                        Color damageColor = {1.0f, 0.3f, 0.3f}; // Red for damage
+                        createExplosion(player.x, player.y, player.width / 2, damageColor);
+                        
                         lives--;
                         if (lives <= 0) {
+                            // Game over - create large explosion
+                            createExplosion(player.x, player.y, player.width * 2, COLOR_RED);
                             gameState = GAME_OVER_STATE;
                         }
                     }
+                    
+                    // Enemy explosion on collision
+                    createExplosion(enemies[i].base.x, enemies[i].base.y, 
+                                  enemies[i].base.width, enemies[i].base.color);
                     
                     // Give temporary invincibility
                     invincibilityFrames = 120;
@@ -189,6 +211,10 @@ void checkCollisions() {
             float distance = sqrt(dx * dx + dy * dy);
             
             if (distance < (player.width + powerUps[i].base.width) / 2) {
+                // Create power-up collection effect
+                createExplosion(powerUps[i].base.x, powerUps[i].base.y, 
+                              powerUps[i].base.width, powerUps[i].base.color);
+                
                 // Collect power-up
                 switch (powerUps[i].type) {
                     case 0: // Extra life
@@ -207,6 +233,16 @@ void checkCollisions() {
                 }
                 
                 powerUps[i].base.active = 0;
+            }
+        }
+    }
+    
+    // Update explosions
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+        if (explosions[i].active) {
+            explosions[i].lifeTime--;
+            if (explosions[i].lifeTime <= 0) {
+                explosions[i].active = 0;
             }
         }
     }

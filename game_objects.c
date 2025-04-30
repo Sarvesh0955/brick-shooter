@@ -51,6 +51,7 @@ Bullet bullets[MAX_BULLETS];
 Enemy enemies[MAX_ENEMIES];
 PowerUp powerUps[MAX_POWERUPS];
 Star stars[MAX_STARS];
+Explosion explosions[MAX_EXPLOSIONS];
 
 int lastFrameTime = 0;
 float deltaTime = 0.0f;
@@ -119,6 +120,10 @@ void initGame() {
     
     for (int i = 0; i < MAX_POWERUPS; i++) {
         powerUps[i].base.active = 0;
+    }
+    
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+        explosions[i].active = 0;
     }
     
     for (int i = 0; i < MAX_STARS; i++) {
@@ -269,6 +274,20 @@ void fireBullet(int type, float angleOffset) {
                     bullets[i].base.color = COLOR_YELLOW;
                     break;
             }
+            return;
+        }
+    }
+}
+
+void createExplosion(float x, float y, float size, Color color) {
+    for (int i = 0; i < MAX_EXPLOSIONS; i++) {
+        if (!explosions[i].active) {
+            explosions[i].active = 1;
+            explosions[i].x = x;
+            explosions[i].y = y;
+            explosions[i].size = size;
+            explosions[i].color = color;
+            explosions[i].lifeTime = 30; // Lasts for 30 frames
             return;
         }
     }

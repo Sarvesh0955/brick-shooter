@@ -19,6 +19,7 @@
 #define MAX_ENEMIES 30
 #define MAX_POWERUPS 5
 #define MAX_STARS 100
+#define MAX_EXPLOSIONS 20
 
 typedef struct {
     GLfloat r, g, b;
@@ -58,6 +59,14 @@ typedef struct {
     float speed;
 } Star;
 
+typedef struct {
+    float x, y;
+    float size;
+    Color color;
+    int active;
+    int lifeTime;  // How long the explosion lasts
+} Explosion;
+
 extern Color COLOR_RED;
 extern Color COLOR_GREEN;
 extern Color COLOR_BLUE;
@@ -95,6 +104,7 @@ extern Bullet bullets[MAX_BULLETS];
 extern Enemy enemies[MAX_ENEMIES];
 extern PowerUp powerUps[MAX_POWERUPS];
 extern Star stars[MAX_STARS];
+extern Explosion explosions[MAX_EXPLOSIONS];
 
 extern int lastFrameTime;
 extern float deltaTime;
@@ -112,6 +122,7 @@ void setupLevel(int level);
 void spawnEnemy();
 void spawnPowerUp(float x, float y);
 void fireBullet(int type, float angleOffset);
+void createExplosion(float x, float y, float size, Color color);
 
 void updateGameState();
 void checkCollisions();
