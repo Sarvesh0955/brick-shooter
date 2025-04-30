@@ -3,4 +3,4 @@ clang project.c -o project -I/opt/homebrew/include -L/opt/homebrew/lib -framewor
 ./project
 
 linux
-gcc project.c -o project -lGL -lGLU -lglut -lm
+gcc -o space_defender main.c game_objects.c game_state.c rendering.c -lGL -lGLU -lglut -lm
