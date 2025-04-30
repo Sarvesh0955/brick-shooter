@@ -647,32 +647,55 @@ void drawGameOver() {
 }
 
 void drawSplashText() {
-    glColor3f(1.0, 0.8, 0.0);
-    drawString(WINDOW_WIDTH/2 - 245, WINDOW_HEIGHT/2 + 210, 
-        "CGV mini PROJECT : Star Wars x Space Defender", 
-        GLUT_BITMAP_TIMES_ROMAN_24);
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     
-    setColor(COLOR_CYAN);
+    // Enable blending for glow effects
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    
+    // Title with pulsing glow effect
+    float titleGlow = (sin(time * 2.0f) + 1.0f) * 0.3f;
+    glColor4f(1.0f, 0.8f, 0.0f, 0.7f + titleGlow);
+    
+    // Draw title with scale effect
+    glPushMatrix();
+    float titleScale = 1.0f + sin(time * 1.5f) * 0.05f;
+    glTranslatef(WINDOW_WIDTH/2 - 245, WINDOW_HEIGHT/2 + 210, 0);
+    glScalef(titleScale, titleScale, 1.0f);
+    drawString(0, 0, "CGV mini PROJECT : Star Wars x Space Defender", 
+        GLUT_BITMAP_TIMES_ROMAN_24);
+    glPopMatrix();
+    
+    // Group name with cyan glow
+    float groupGlow = (sin(time * 3.0f) + 1.0f) * 0.3f;
+    glColor4f(0.0f, 1.0f, 1.0f, 0.7f + groupGlow);
     drawString(WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2 + 110, 
         "~ by GROUP 17", 
         GLUT_BITMAP_HELVETICA_18);
     
-    setColor(COLOR_WHITE);
+    glColor3f(0.7f, 0.8f, 1.0f);
     drawString(WINDOW_WIDTH/2 - 75, WINDOW_HEIGHT/2 + 60, 
-    "Rachit(IIT2023100)", 
+        "Rachit(IIT2023100)", 
         GLUT_BITMAP_HELVETICA_18);
     
+    glColor3f(0.7f, 1.0f, 0.8f);
     drawString(WINDOW_WIDTH/2 - 85, WINDOW_HEIGHT/2 + 20, 
         "Sarvesh(IIT2023101)", 
         GLUT_BITMAP_HELVETICA_18);
     
+    glColor3f(1.0f, 0.7f, 1.0f);
     drawString(WINDOW_WIDTH/2 - 90, WINDOW_HEIGHT/2 - 20, 
         "Ashutosh(IIT2023028)",
         GLUT_BITMAP_HELVETICA_18);
     
+    glColor3f(1.0f, 0.8f, 0.7f);
     drawString(WINDOW_WIDTH/2 - 95, WINDOW_HEIGHT/2 - 60, 
         "Deepanshu(IIT2023013)", 
         GLUT_BITMAP_HELVETICA_18);
+    
+
+    
+    glDisable(GL_BLEND);
 }
 
 void drawStoryScreen() {

@@ -36,7 +36,6 @@ void updateGameState() {
         invincibilityFrames--;
     }
     
-    // Update bullets
     for (int i = 0; i < MAX_BULLETS; i++) {
         if (bullets[i].base.active) {
             float vx = sin(bullets[i].angle) * bullets[i].base.speed * deltaTime;
@@ -45,22 +44,18 @@ void updateGameState() {
             bullets[i].base.x += vx;
             bullets[i].base.y += vy;
             
-            // Deactivate bullets that go off-screen
             if (bullets[i].base.y > WINDOW_HEIGHT + 10) {
                 bullets[i].base.active = 0;
             }
         }
     }
     
-    // Update enemies
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (enemies[i].base.active) {
-            // Move enemy down with some horizontal movement based on pattern
             enemies[i].base.y -= enemies[i].base.speed * deltaTime;
             enemies[i].base.x += sin(enemies[i].movePattern + enemies[i].base.y * 0.01) * 2.0f;
             enemies[i].base.x = fmaxf(30, fminf(WINDOW_WIDTH - enemies[i].base.width - 10, enemies[i].base.x));
             
-            // Deactivate enemies that go off-screen
             if (enemies[i].base.y < -enemies[i].base.height) {
                 enemies[i].base.active = 0;
                 spawnEnemy(); 
@@ -68,20 +63,17 @@ void updateGameState() {
         }
     }
     
-    // Update power-ups
     for (int i = 0; i < MAX_POWERUPS; i++) {
         if (powerUps[i].base.active) {
             powerUps[i].base.y -= powerUps[i].base.speed * deltaTime;
             powerUps[i].rotationAngle += 2.0f;
             
-            // Deactivate power-ups that go off-screen
             if (powerUps[i].base.y < -powerUps[i].base.height) {
                 powerUps[i].base.active = 0;
             }
         }
     }
     
-    // Update stars (background)
     for (int i = 0; i < MAX_STARS; i++) {
         stars[i].y -= stars[i].speed * deltaTime;
         if (stars[i].y < 0) {
