@@ -211,9 +211,6 @@ void checkCollisions() {
             float distance = sqrt(dx * dx + dy * dy);
             
             if (distance < (player.width + powerUps[i].base.width) / 2) {
-                // Create power-up collection effect
-                createExplosion(powerUps[i].base.x, powerUps[i].base.y, 
-                              powerUps[i].base.width, powerUps[i].base.color);
                 
                 // Collect power-up
                 switch (powerUps[i].type) {

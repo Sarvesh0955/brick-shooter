@@ -558,17 +558,47 @@ void drawExplosions() {
 void drawMenu() {
     drawStars();
     
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    float glow = (sin(time * 2.0f) + 1.0f) * 0.3f;
+    float scale = 1.0f + sin(time * 1.5f) * 0.05f;
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    
+    glPushMatrix();
+    glTranslatef(WINDOW_WIDTH / 2, WINDOW_HEIGHT - 150, 0);
+    glScalef(scale, scale, 1.0f);
     setColor(COLOR_CYAN);
-    drawString(WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT - 150, "SPACE DEFENDER", GLUT_BITMAP_TIMES_ROMAN_24);
+    drawString(-120, 0, "SPACE DEFENDER", GLUT_BITMAP_TIMES_ROMAN_24);
+    glPopMatrix();
+    
+    setColor(COLOR_ORANGE);
+    drawString(WINDOW_WIDTH / 2 - 80, WINDOW_HEIGHT - 180, "The Last Stand", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_YELLOW);
+    glColor4f(1.0f, 1.0f, 0.0f, 0.7f + sin(time) * 0.3f);
+    drawString(WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT - 220, "\"In a galaxy filled with chaos,", GLUT_BITMAP_HELVETICA_12);
+    drawString(WINDOW_WIDTH / 2 - 120, WINDOW_HEIGHT - 240, "you are the last hope for the Republic.\"", GLUT_BITMAP_HELVETICA_12);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 0.8f + glow);
+    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2, "> Press SPACE to Start <", GLUT_BITMAP_HELVETICA_18);
     
     setColor(COLOR_WHITE);
-    drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2, "Press SPACE to Start", GLUT_BITMAP_HELVETICA_18);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.7f + sin(time * 1.5f) * 0.3f);
     drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 30, "Press I for Instructions", GLUT_BITMAP_HELVETICA_18);
     drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 - 60, "Press Q to Quit", GLUT_BITMAP_HELVETICA_18);
     
     setColor(COLOR_YELLOW);
-    drawString(WINDOW_WIDTH / 2 - 150, 100, "Computer Graphics Mini Project", GLUT_BITMAP_HELVETICA_18);
-    drawString(WINDOW_WIDTH / 2 - 80, 70, "Group 17", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 150, 120, "Computer Graphics Mini Project", GLUT_BITMAP_9_BY_15);
+    
+    glColor4f(0.0f, 1.0f, 1.0f, 0.7f + sin(time * 2.0f) * 0.3f);
+    drawString(WINDOW_WIDTH / 2 - 80, 90, "Team: Spirit", GLUT_BITMAP_HELVETICA_18);
+    
+    setColor(COLOR_WHITE);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
+    drawString(WINDOW_WIDTH - 70, 20, "v1.0", GLUT_BITMAP_8_BY_13);
+    
+    glDisable(GL_BLEND);
 }
 
 void drawInstructions() {
