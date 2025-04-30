@@ -490,7 +490,7 @@ void drawSplashText() {
         GLUT_BITMAP_HELVETICA_18);
     
     drawString(WINDOW_WIDTH/2 - 85, WINDOW_HEIGHT/2 + 20, 
-        "Sarvesh(IIT2023102)", 
+        "Sarvesh(IIT2023101)", 
         GLUT_BITMAP_HELVETICA_18);
     
     drawString(WINDOW_WIDTH/2 - 90, WINDOW_HEIGHT/2 - 20, 
