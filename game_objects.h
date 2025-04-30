@@ -64,7 +64,7 @@ typedef struct {
     float size;
     Color color;
     int active;
-    int lifeTime;  // How long the explosion lasts
+    int lifeTime;
 } Explosion;
 
 extern Color COLOR_RED;

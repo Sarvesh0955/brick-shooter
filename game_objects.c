@@ -10,7 +10,6 @@
 #include "stb_image.h"
 #define STBI_rgb_alpha 4
 
-// Define the global variables
 Color COLOR_RED = {1.0f, 0.0f, 0.0f};
 Color COLOR_GREEN = {0.0f, 1.0f, 0.0f};
 Color COLOR_BLUE = {0.0f, 0.0f, 1.0f};
@@ -35,7 +34,6 @@ int enemiesRequired = 0;
 float difficultyMultiplier = 1.0f;
 int isPaused = 0;
 
-// Player variables
 GameObject player;
 int isMovingLeft = 0;
 int isMovingRight = 0;
@@ -46,7 +44,6 @@ int hasMultiShot = 0;
 int shootCooldown = 0;
 int invincibilityFrames = 0;
 
-// Game objects
 Bullet bullets[MAX_BULLETS];
 Enemy enemies[MAX_ENEMIES];
 PowerUp powerUps[MAX_POWERUPS];
@@ -57,7 +54,6 @@ int lastFrameTime = 0;
 float deltaTime = 0.0f;
 GLuint splashTexture;
 
-// Utility functions
 float randomFloat(float min, float max) {
     return min + ((float)rand() / RAND_MAX) * (max - min);
 }
@@ -97,7 +93,6 @@ GLuint loadTexture(const char* filename) {
     return texture;
 }
 
-// Game initialization and setup
 void initGame() {
     srand(time(NULL));
     
@@ -141,7 +136,6 @@ void setupLevel(int level) {
     enemiesRequired = 10 + (level * 5);
     difficultyMultiplier = 1.0f + (level * 0.1f);
     
-    // Clear all enemies and powerups
     for (int i = 0; i < MAX_ENEMIES; i++) {
         enemies[i].base.active = 0;
     }
@@ -149,8 +143,7 @@ void setupLevel(int level) {
     for (int i = 0; i < MAX_POWERUPS; i++) {
         powerUps[i].base.active = 0;
     }
-    
-    // Spawn initial enemies for this level
+
     for (int i = 0; i < 5 + level; i++) {
         spawnEnemy();
     }
@@ -168,7 +161,6 @@ void resetGame() {
     initGame();
 }
 
-// Game object spawning functions
 void spawnEnemy() {
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (!enemies[i].base.active) {
@@ -176,7 +168,6 @@ void spawnEnemy() {
             enemies[i].base.x = randomFloat(40, WINDOW_WIDTH - 40);
             enemies[i].base.y = WINDOW_HEIGHT + randomFloat(10, 50);
             
-            // Determine enemy type with increasing difficulty
             float typeRoll = randomFloat(0, 1);
             if (typeRoll < 0.1f * level) {
                 // Boss type
@@ -184,7 +175,7 @@ void spawnEnemy() {
                 enemies[i].base.width = 60;
                 enemies[i].base.height = 60;
                 enemies[i].base.speed = 30.0f * difficultyMultiplier;
-                enemies[i].base.health = 5;
+                enemies[i].base.health = 7;
                 enemies[i].base.color = COLOR_RED;
                 enemies[i].points = 230;
             } else if (typeRoll < 0.3f * level) {
@@ -193,7 +184,7 @@ void spawnEnemy() {
                 enemies[i].base.width = 40;
                 enemies[i].base.height = 40;
                 enemies[i].base.speed = 50.0f * difficultyMultiplier;
-                enemies[i].base.health = 3;
+                enemies[i].base.health = 4;
                 enemies[i].base.color = COLOR_ORANGE;
                 enemies[i].points = 100;
             } else {
@@ -202,7 +193,7 @@ void spawnEnemy() {
                 enemies[i].base.width = 30;
                 enemies[i].base.height = 30;
                 enemies[i].base.speed = 70.0f * difficultyMultiplier;
-                enemies[i].base.health = 1;
+                enemies[i].base.health = 2;
                 enemies[i].base.color = COLOR_GREEN;
                 enemies[i].points = 50;
             }
@@ -287,7 +278,7 @@ void createExplosion(float x, float y, float size, Color color) {
             explosions[i].y = y;
             explosions[i].size = size;
             explosions[i].color = color;
-            explosions[i].lifeTime = 30; // Lasts for 30 frames
+            explosions[i].lifeTime = 30; 
             return;
         }
     }

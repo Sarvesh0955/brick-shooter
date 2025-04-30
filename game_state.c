@@ -82,10 +82,8 @@ void updateGameState() {
         }
     }
     
-    // Check for collisions between game objects
     checkCollisions();
     
-    // Count active enemies and spawn new ones if needed
     int activeEnemies = 0;
     for (int i = 0; i < MAX_ENEMIES; i++) {
         if (enemies[i].base.active) {
@@ -97,7 +95,7 @@ void updateGameState() {
         spawnEnemy();
     }
     
-    // Check for level completion
+    // level completion
     if (enemiesKilled >= enemiesRequired) {
         if (level < maxLevel) {
             gameState = LEVEL_COMPLETE_STATE; 
@@ -119,24 +117,19 @@ void checkCollisions() {
                     float distance = sqrt(dx * dx + dy * dy);
                     
                     if (distance < (bullets[i].base.width + enemies[j].base.width) / 2) {
-                        // Hit! Reduce enemy health
                         int damage = (bullets[i].type == 1) ? 2 : 1;
                         enemies[j].base.health -= damage;
                         
-                        // Create small impact explosion at bullet hit point
-                        Color impactColor = {1.0f, 0.8f, 0.4f}; // Yellow-orange for impact
+                        Color impactColor = {1.0f, 0.8f, 0.4f}; 
                         createExplosion(bullets[i].base.x, bullets[i].base.y, 10.0f, impactColor);
                         
                         if (enemies[j].base.health <= 0) {
-                            // Enemy destroyed - create larger explosion
                             createExplosion(enemies[j].base.x, enemies[j].base.y, 
                                   enemies[j].base.width, enemies[j].base.color);
                             
-                            // Enemy destroyed
                             score += enemies[j].points;
                             enemiesKilled++;
                             
-                            // Spawn power-up from destroyed enemy
                             spawnPowerUp(enemies[j].base.x, enemies[j].base.y);
                             
                             enemies[j].base.active = 0;
@@ -159,35 +152,26 @@ void checkCollisions() {
                 float distance = sqrt(dx * dx + dy * dy);
                 
                 if (distance < (player.width + enemies[i].base.width) / 2) {
-                    // Collision! Handle damage
                     if (hasShield) {
-                        // Shield absorbs the hit - create shield impact explosion
-                        Color shieldColor = {0.3f, 0.3f, 1.0f}; // Blue for shield impact
+                        Color shieldColor = {0.3f, 0.3f, 1.0f}; 
                         createExplosion(player.x, player.y, player.width, shieldColor);
                         
-                        // Shield absorbs the hit
                         hasShield = 0;
                     } else {
-                        // Player takes damage - create explosion
-                        Color damageColor = {1.0f, 0.3f, 0.3f}; // Red for damage
+                        Color damageColor = {1.0f, 0.3f, 0.3f};
                         createExplosion(player.x, player.y, player.width / 2, damageColor);
                         
                         lives--;
                         if (lives <= 0) {
-                            // Game over - create large explosion
                             createExplosion(player.x, player.y, player.width * 2, COLOR_RED);
                             gameState = GAME_OVER_STATE;
                         }
                     }
                     
-                    // Enemy explosion on collision
                     createExplosion(enemies[i].base.x, enemies[i].base.y, 
                                   enemies[i].base.width, enemies[i].base.color);
                     
-                    // Give temporary invincibility
                     invincibilityFrames = 120;
-                    
-                    // Destroy the enemy
                     enemies[i].base.active = 0;
                     break;
                 }
@@ -204,7 +188,6 @@ void checkCollisions() {
             
             if (distance < (player.width + powerUps[i].base.width) / 2) {
                 
-                // Collect power-up
                 switch (powerUps[i].type) {
                     case 0: // Extra life
                         lives++;
@@ -226,7 +209,6 @@ void checkCollisions() {
         }
     }
     
-    // Update explosions
     for (int i = 0; i < MAX_EXPLOSIONS; i++) {
         if (explosions[i].active) {
             explosions[i].lifeTime--;
@@ -236,7 +218,6 @@ void checkCollisions() {
         }
     }
     
-    // Reduce power-up durations
     if (hasRapidFire > 0) hasRapidFire--;
     if (hasMultiShot > 0) hasMultiShot--;
 }

@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <math.h>
 
-// Forward declarations for screens
 void drawMenu();
 void drawInstructions();
 void drawGameOver();
@@ -10,7 +9,6 @@ void drawLevelComplete();
 void drawSplashText();
 void drawStoryScreen();
 
-// Forward declarations for game elements
 void drawPlayer();
 void drawBullets();
 void drawEnemies();
@@ -60,7 +58,6 @@ void display() {
             break;
             
         case PLAYING_STATE:
-            // Draw game elements
             drawStars();
             
             if (gameState == PLAYING_STATE) {
@@ -68,7 +65,7 @@ void display() {
                 drawBullets();
                 drawEnemies();
                 drawPowerUps();
-                drawExplosions(); // Draw all active explosions
+                drawExplosions(); 
                 drawHUD();
                 drawLives();
             }
@@ -76,7 +73,7 @@ void display() {
             
         case GAME_OVER_STATE:
             drawStars();
-            drawExplosions(); // Draw explosions on game over screen too
+            drawExplosions();
             drawGameOver();
             break;
             
@@ -89,35 +86,30 @@ void display() {
 }
 
 void drawPlayer() {
-    // Don't draw during invincibility frames (flashing effect)
     if (invincibilityFrames > 0 && invincibilityFrames % 10 < 5) {
         return;
     }
 
-    // Draw the main body of the ship (Star Wars X-Wing style)
+    // player ship
     setColor(player.color);
     glBegin(GL_QUADS);
-        glVertex2f(player.x - player.width / 4, player.y); // Left side
-        glVertex2f(player.x + player.width / 4, player.y); // Right side
-        glVertex2f(player.x + player.width / 6, player.y + player.height); // Top right
-        glVertex2f(player.x - player.width / 6, player.y + player.height); // Top left
+        glVertex2f(player.x - player.width / 4, player.y); 
+        glVertex2f(player.x + player.width / 4, player.y); 
+        glVertex2f(player.x + player.width / 6, player.y + player.height); 
+        glVertex2f(player.x - player.width / 6, player.y + player.height);
     glEnd();
 
-    // Draw the wings
     setColor(COLOR_WHITE);
     glBegin(GL_TRIANGLES);
-        // Left wing
         glVertex2f(player.x - player.width / 2, player.y + player.height / 3);
         glVertex2f(player.x - player.width / 4, player.y + player.height / 3);
         glVertex2f(player.x - player.width / 2, player.y - player.height / 3);
 
-        // Right wing
         glVertex2f(player.x + player.width / 2, player.y + player.height / 3);
         glVertex2f(player.x + player.width / 4, player.y + player.height / 3);
         glVertex2f(player.x + player.width / 2, player.y - player.height / 3);
     glEnd();
 
-    // Draw the cockpit
     setColor(COLOR_BLACK);
     glBegin(GL_POLYGON);
     for (int i = 0; i < 20; i++) {
@@ -128,7 +120,6 @@ void drawPlayer() {
     }
     glEnd();
 
-    // Draw engine flames
     setColor(COLOR_ORANGE);
     glBegin(GL_TRIANGLES);
         glVertex2f(player.x - player.width / 6, player.y - player.height / 2);
@@ -140,7 +131,6 @@ void drawPlayer() {
         glVertex2f(player.x + player.width / 4, player.y - player.height / 3);
     glEnd();
 
-    // Draw shield if active
     if (hasShield) {
         setColor(COLOR_BLUE);
         glBegin(GL_LINE_LOOP);
@@ -165,7 +155,6 @@ void drawBullets() {
                 glVertex2f(bullets[i].base.x - bullets[i].base.width / 2, bullets[i].base.y + bullets[i].base.height / 2);
             glEnd();
             
-            // Draw trail effect
             glBegin(GL_TRIANGLES);
                 glVertex2f(bullets[i].base.x - bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
                 glVertex2f(bullets[i].base.x + bullets[i].base.width / 2, bullets[i].base.y - bullets[i].base.height / 2);
@@ -180,7 +169,6 @@ void drawEnemies() {
         if (enemies[i].base.active) {
             switch (enemies[i].type) {
                 case 0: // Standard enemy (TIE Fighter style)
-                    // Draw solar panel wings with more detail
                     setColor(COLOR_DARK_GRAY);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 8; j++) {
@@ -200,7 +188,6 @@ void drawEnemies() {
                     }
                     glEnd();
                     
-                    // Add wing details (TIE Fighter panel lines)
                     setColor(COLOR_BLACK);
                     for (int wing = -1; wing <= 1; wing += 2) {
                         float centerX = enemies[i].base.x + wing * enemies[i].base.width / 2;
@@ -216,7 +203,6 @@ void drawEnemies() {
                         }
                     }
 
-                    // Draw central cockpit (ball shape with highlight)
                     setColor(COLOR_DARK_GRAY);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 16; j++) {
@@ -227,7 +213,6 @@ void drawEnemies() {
                     }
                     glEnd();
                     
-                    // Cockpit window
                     setColor(COLOR_CYAN);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 8; j++) {
@@ -238,7 +223,6 @@ void drawEnemies() {
                     }
                     glEnd();
                     
-                    // Draw connecting arms with thickness
                     setColor(COLOR_LIGHT_GRAY);
                     for (int side = -1; side <= 1; side += 2) {
                         glBegin(GL_QUADS);
@@ -251,19 +235,16 @@ void drawEnemies() {
                     break;
 
                 case 1: // Armored enemy (Star Destroyer style)
-                    // Draw triangular body with slight gradient effect
                     setColor(COLOR_LIGHT_GRAY);
                     glBegin(GL_TRIANGLES);
                     glVertex2f(enemies[i].base.x, enemies[i].base.y + enemies[i].base.height / 2);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
                     glVertex2f(enemies[i].base.x + enemies[i].base.width / 2, enemies[i].base.y - enemies[i].base.height / 2);
                     glEnd();
-                    
-                    // Add detail lines on the hull
+
                     setColor(COLOR_DARK_GRAY);
                     glLineWidth(1.5);
                     glBegin(GL_LINES);
-                    // Horizontal lines
                     for (int j = 1; j < 4; j++) {
                         float y = enemies[i].base.y - enemies[i].base.height/2 + j*enemies[i].base.height/4;
                         float widthAtY = (1 - (y - enemies[i].base.y + enemies[i].base.height/2)/enemies[i].base.height) * enemies[i].base.width;
@@ -273,7 +254,6 @@ void drawEnemies() {
                     glEnd();
                     glLineWidth(1.0);
 
-                    // Draw command bridge with more detail
                     setColor(COLOR_WHITE);
                     glBegin(GL_QUADS);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 6, enemies[i].base.y - enemies[i].base.height/8);
@@ -282,7 +262,6 @@ void drawEnemies() {
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 8, enemies[i].base.y + enemies[i].base.height / 6);
                     glEnd();
                     
-                    // Add bridge windows
                     setColor(COLOR_CYAN);
                     glPointSize(2.0);
                     glBegin(GL_POINTS);
@@ -292,7 +271,6 @@ void drawEnemies() {
                     glEnd();
                     glPointSize(1.0);
                     
-                    // Draw engine glow
                     setColor(COLOR_CYAN);
                     glBegin(GL_QUADS);
                     glVertex2f(enemies[i].base.x - enemies[i].base.width / 4, enemies[i].base.y - enemies[i].base.height / 2);
@@ -303,7 +281,6 @@ void drawEnemies() {
                     break;
 
                 case 2: // Boss enemy (Death Star style)
-                    // Draw main spherical body with gradient effect
                     setColor(COLOR_LIGHT_GRAY);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 30; j++) {
@@ -311,7 +288,6 @@ void drawEnemies() {
                         float x = enemies[i].base.x + cos(angle) * enemies[i].base.width / 2;
                         float y = enemies[i].base.y + sin(angle) * enemies[i].base.height / 2;
                         
-                        // Create slight gradient effect
                         if (angle > M_PI) {
                             setColor(COLOR_DARK_GRAY);
                         } else {
@@ -322,7 +298,6 @@ void drawEnemies() {
                     }
                     glEnd();
 
-                    // Draw surface details (random small craters/structures)
                     setColor(COLOR_DARK_GRAY);
                     glPointSize(2.0);
                     glBegin(GL_POINTS);
@@ -336,7 +311,6 @@ void drawEnemies() {
                     glEnd();
                     glPointSize(1.0);
 
-                    // Draw equatorial trench with more detail
                     setColor(COLOR_BLACK);
                     glLineWidth(3.0);
                     glBegin(GL_LINES);
@@ -345,7 +319,6 @@ void drawEnemies() {
                     glEnd();
                     glLineWidth(1.0);
                     
-                    // Add trench details
                     setColor(COLOR_DARK_GRAY);
                     glBegin(GL_QUADS);
                     for (int j = -3; j <= 3; j++) {
@@ -357,7 +330,6 @@ void drawEnemies() {
                     }
                     glEnd();
                     
-                    // Draw superlaser dish with glow effect
                     setColor(COLOR_GREEN);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 16; j++) {
@@ -368,7 +340,6 @@ void drawEnemies() {
                     }
                     glEnd();
                     
-                    // Add superlaser center
                     setColor(COLOR_BRIGHT_GREEN);
                     glBegin(GL_POLYGON);
                     for (int j = 0; j < 8; j++) {
@@ -389,7 +360,6 @@ void drawPowerUps() {
         if (powerUps[i].base.active) {
             setColor(powerUps[i].base.color);
             
-            // Draw rotating diamond shape
             glPushMatrix();
             glTranslatef(powerUps[i].base.x, powerUps[i].base.y, 0);
             glRotatef(powerUps[i].rotationAngle, 0, 0, 1);
@@ -451,7 +421,6 @@ void drawPowerUps() {
     }
 }
 
-// Draw starfield background
 void drawStars() {
     glPointSize(2.0f);
     glBegin(GL_POINTS);
@@ -521,12 +490,11 @@ void drawExplosion(float x, float y, float size, Color color) {
         glEnd();
     }
     
-    // Draw inner explosion with different color for depth effect
-    Color innerColor = {1.0f, 0.7f, 0.2f}; // Bright orange
+    Color innerColor = {1.0f, 0.7f, 0.2f}; 
     setColor(innerColor);
     
     for (int i = 0; i < 8; i++) {
-        float angle = 2.0f * M_PI * i / 8 + 0.3; // Offset for variation
+        float angle = 2.0f * M_PI * i / 8 + 0.3; 
         float nextAngle = 2.0f * M_PI * (i + 1) / 8 + 0.3;
         
         glBegin(GL_TRIANGLES);
@@ -535,9 +503,8 @@ void drawExplosion(float x, float y, float size, Color color) {
             glVertex2f(x + cos(nextAngle) * size * 0.6f, y + sin(nextAngle) * size * 0.6f);
         glEnd();
     }
-    
-    // Draw center glow
-    Color centerColor = {1.0f, 1.0f, 0.5f}; // Bright yellow
+
+    Color centerColor = {1.0f, 1.0f, 0.5f}; 
     setColor(centerColor);
     glBegin(GL_POLYGON);
     for (int i = 0; i < 16; i++) {
@@ -649,15 +616,12 @@ void drawGameOver() {
 void drawSplashText() {
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     
-    // Enable blending for glow effects
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     
-    // Title with pulsing glow effect
     float titleGlow = (sin(time * 2.0f) + 1.0f) * 0.3f;
     glColor4f(1.0f, 0.8f, 0.0f, 0.7f + titleGlow);
     
-    // Draw title with scale effect
     glPushMatrix();
     float titleScale = 1.0f + sin(time * 1.5f) * 0.05f;
     glTranslatef(WINDOW_WIDTH/2 - 245, WINDOW_HEIGHT/2 + 210, 0);
@@ -666,7 +630,6 @@ void drawSplashText() {
         GLUT_BITMAP_TIMES_ROMAN_24);
     glPopMatrix();
     
-    // Group name with cyan glow
     float groupGlow = (sin(time * 3.0f) + 1.0f) * 0.3f;
     glColor4f(0.0f, 1.0f, 1.0f, 0.7f + groupGlow);
     drawString(WINDOW_WIDTH/2 - 70, WINDOW_HEIGHT/2 + 110, 
@@ -701,10 +664,8 @@ void drawSplashText() {
 void drawStoryScreen() {
     drawStars();
     
-    // Get current time for animations
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     
-    // Title with glowing effect
     setColor(COLOR_YELLOW);
     float glow = (sin(time * 2.0f) + 1.0f) * 0.3f;
     glColor4f(1.0f, 1.0f, 0.0f, 0.7f + glow);
@@ -715,7 +676,6 @@ void drawStoryScreen() {
         titleWidth += glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, *c);
     }
     
-    // Draw title with scaling effect
     glPushMatrix();
     glTranslatef(WINDOW_WIDTH / 2, WINDOW_HEIGHT - 150, 0);
     float scale = 1.0f + sin(time * 1.5f) * 0.05f;
@@ -723,7 +683,6 @@ void drawStoryScreen() {
     drawString(-titleWidth / 2, 0, title, GLUT_BITMAP_TIMES_ROMAN_24);
     glPopMatrix();
     
-    // Subtitle with different color
     setColor(COLOR_CYAN);
     const char* subtitle = "Chapter I: The IIITA Chronicles";
     int subtitleWidth = 0;
@@ -733,7 +692,6 @@ void drawStoryScreen() {
     drawString(WINDOW_WIDTH / 2 - subtitleWidth / 2, WINDOW_HEIGHT - 200, 
         subtitle, GLUT_BITMAP_HELVETICA_18);
     
-    // Story text with fade-in effect
     float alpha = (sin(time) + 1.0f) * 0.5f;
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
@@ -743,7 +701,6 @@ void drawStoryScreen() {
     const char* line4 = "As IIITA's last hope, you must pilot your ship through";
     const char* line5 = "the digital space and defend the Republic's sacred code!";
     
-    // Calculate widths for center alignment
     int lineWidths[5] = {0};
     const char* lines[] = {line1, line2, line3, line4, line5};
     
@@ -753,14 +710,12 @@ void drawStoryScreen() {
         }
     }
     
-    // Draw story text with vertical spacing
     for (int i = 0; i < 5; i++) {
         drawString(WINDOW_WIDTH / 2 - lineWidths[i] / 2, 
             WINDOW_HEIGHT / 2 + 60 - (i * 30), 
             lines[i], GLUT_BITMAP_HELVETICA_18);
     }
     
-    // Epic call to action with pulsing effect
     setColor(COLOR_RED);
     float pulse = (sin(time * 3.0f) + 1.0f) * 0.5f;
     glColor4f(1.0f, 0.0f, 0.0f, 0.5f + pulse);
@@ -773,20 +728,18 @@ void drawStoryScreen() {
     drawString(WINDOW_WIDTH / 2 - ctaWidth / 2, WINDOW_HEIGHT / 2 - 110, 
         callToAction, GLUT_BITMAP_HELVETICA_18);
     
-    // Continue text with blinking effect
     const char* continueText = "Press SPACE to begin your journey";
     int continueWidth = 0;
     for (const char* c = continueText; *c != '\0'; c++) {
         continueWidth += glutBitmapWidth(GLUT_BITMAP_HELVETICA_18, *c);
     }
     
-    if ((int)(time * 2) % 2) { // Blinking effect
+    if ((int)(time * 2) % 2) { 
         setColor(COLOR_WHITE);
         drawString(WINDOW_WIDTH / 2 - continueWidth / 2, WINDOW_HEIGHT / 2 - 150, 
             continueText, GLUT_BITMAP_HELVETICA_18);
     }
     
-    // Draw small decorative Jedi symbol
     setColor(COLOR_YELLOW);
     glBegin(GL_TRIANGLES);
     float symbolSize = 20.0f;
@@ -803,7 +756,6 @@ void drawLevelComplete() {
     setColor(COLOR_GREEN);
     drawString(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT - 200, "LEVEL COMPLETE!", GLUT_BITMAP_TIMES_ROMAN_24);
     
-    // Draw level info
     setColor(COLOR_WHITE);
     char buffer[64];
     sprintf(buffer, "Level %d Completed!", level);
