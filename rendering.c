@@ -568,7 +568,7 @@ void drawMenu() {
     
     setColor(COLOR_YELLOW);
     drawString(WINDOW_WIDTH / 2 - 150, 100, "Computer Graphics Mini Project", GLUT_BITMAP_HELVETICA_18);
-    drawString(WINDOW_WIDTH / 2 - 80, 70, "Group 9", GLUT_BITMAP_HELVETICA_18);
+    drawString(WINDOW_WIDTH / 2 - 80, 70, "Group 17", GLUT_BITMAP_HELVETICA_18);
 }
 
 void drawInstructions() {
