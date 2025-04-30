@@ -7,16 +7,14 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-// Game states
 #define SPLASH_STATE -1
 #define MENU_STATE 0
 #define INSTRUCTIONS_STATE 1
-#define STORY_STATE 5  // New state for Star Wars storyline
+#define STORY_STATE 5 
 #define PLAYING_STATE 2
 #define GAME_OVER_STATE 3
 #define LEVEL_COMPLETE_STATE 4
 
-// Object limits
 #define MAX_BULLETS 50
 #define MAX_ENEMIES 30
 #define MAX_POWERUPS 5
@@ -26,7 +24,6 @@ typedef struct {
     GLfloat r, g, b;
 } Color;
 
-// Basic game object structure
 typedef struct {
     GLfloat x, y;
     GLfloat width, height;
@@ -61,7 +58,6 @@ typedef struct {
     float speed;
 } Star;
 
-// Predefined colors
 extern Color COLOR_RED;
 extern Color COLOR_GREEN;
 extern Color COLOR_BLUE;
@@ -75,7 +71,6 @@ extern Color COLOR_DARK_GRAY;
 extern Color COLOR_LIGHT_GRAY;
 extern Color COLOR_BRIGHT_GREEN;
 
-// Game state variables
 extern int gameState;
 extern int score;
 extern int lives;
@@ -86,7 +81,6 @@ extern int enemiesRequired;
 extern float difficultyMultiplier;
 extern int isPaused;
 
-// Player related variables
 extern GameObject player;
 extern int isMovingLeft;
 extern int isMovingRight;
@@ -97,7 +91,6 @@ extern int hasMultiShot;
 extern int shootCooldown;
 extern int invincibilityFrames;
 
-// Game object collections
 extern Bullet bullets[MAX_BULLETS];
 extern Enemy enemies[MAX_ENEMIES];
 extern PowerUp powerUps[MAX_POWERUPS];
@@ -107,24 +100,20 @@ extern int lastFrameTime;
 extern float deltaTime;
 extern GLuint splashTexture;
 
-// Utility functions
 float randomFloat(float min, float max);
 void setColor(Color color);
 void drawString(float x, float y, const char* string, void* font);
 GLuint loadTexture(const char* filename);
 
-// Game initialization and setup
 void initGame();
 void resetGame();
 void setupLevel(int level);
 
-// Game object spawning
 void spawnEnemy();
 void spawnPowerUp(float x, float y);
 void fireBullet(int type, float angleOffset);
 
-// Game state management
 void updateGameState();
 void checkCollisions();
 
-#endif /* GAME_OBJECTS_H */
+#endif

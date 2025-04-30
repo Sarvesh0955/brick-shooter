@@ -1,6 +1,6 @@
 macOs
-clang project.c -o project -I/opt/homebrew/include -L/opt/homebrew/lib -framework OpenGL -framework GLUT
-./project
+clang main.c game_objects.c game_state.c rendering.c -o space_defender -I/opt/homebrew/include -L/opt/homebrew/lib -framework OpenGL -framework GLUT
+./space_defender
 
 linux
 gcc -o space_defender main.c game_objects.c game_state.c rendering.c -lGL -lGLU -lglut -lm

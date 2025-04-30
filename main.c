@@ -2,14 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Function declarations from rendering.c
+// rendering.c
 extern void display();
 
-// Function declarations from game_state.c
+// game_state.c
 extern void updateGameState();
 extern void checkCollisions();
 
-// Function declarations
 void init();
 void keyboard(unsigned char key, int x, int y);
 void keyboardUp(unsigned char key, int x, int y);
@@ -36,10 +35,10 @@ void keyboard(unsigned char key, int x, int y) {
         case ' ':
             switch (gameState) {
                 case SPLASH_STATE:
-                    gameState = STORY_STATE;  // Go to story screen first
+                    gameState = STORY_STATE;  
                     break;
                     
-                case STORY_STATE:            // From story screen to menu
+                case STORY_STATE:           
                     gameState = MENU_STATE;
                     break;
                     
